@@ -167,7 +167,7 @@ def footer(i, cur):
         '<div class="wrap ft-b"><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a></div></footer>'
         % (U("hq", i), U("hq_addr", i), rel(cur, "contact/hq-offices"), U("addr_link", i), rel(cur, "contact"), U("enq_form", i),
            t(dict(M.NAV)["about-us"], i), about, t(dict(M.NAV)["services"], i), svc, t(dict(M.NAV)["online-services"], i), onl,
-           gov(i), U("govhk", i), gov(i, "about/copyright"), U("copyright", i), gov(i, "about/privacy"), U("privacy", i), gov(i, "about/disclaimer"), U("disclaimer", i))
+           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i))
     )
 
 
@@ -378,7 +378,7 @@ def eservice_page(i, hl, cur, info):
         '<script type="application/json" id="svc-cfg">%s</script><script src="%%A%%immd.js"></script><script src="%%A%%svc.js"></script></body></html>'
         % (hl, html.escape(g(info["title"], i)), html.escape(g(M.UI["dept"], i)), up, up, LANGS[i][0], U("dept", i), U("govline", i), lang_links(i, cur), rel(cur, ""), U("exit", i),
            t(info["title"], i), " has-menu" if term else "", menu, term_html, " hidden" if term else "",
-           gov(i), U("govhk", i), gov(i, "about/copyright"), U("copyright", i), gov(i, "about/privacy"), U("privacy", i), gov(i, "about/disclaimer"), U("disclaimer", i), blob))
+           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob))
     return finish(txt, cur)
 
 
