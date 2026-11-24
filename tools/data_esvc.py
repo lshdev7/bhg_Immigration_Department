@@ -50,6 +50,8 @@ L = {
     "dow": [("Sun", "일", "日"), ("Mon", "월", "一"), ("Tue", "화", "二"), ("Wed", "수", "三"), ("Thu", "목", "四"), ("Fri", "금", "五"), ("Sat", "토", "六")],
     "compute": ("Compute", "계산", "計算"),
     "stepFmt": ("Step {n}: {t}", "{n}단계: {t}", "步驟{n}：{t}"),
+    "dlPassport": ("Download passport (PDF)", "여권 내려받기(PDF)", "下載護照（PDF）"),
+    "generating": ("Generating PDF…", "PDF 만드는 중…", "正在產生PDF…"),
 }
 
 OFFICES = [

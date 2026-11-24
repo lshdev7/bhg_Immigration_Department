@@ -351,6 +351,8 @@ def eservice_page(i, hl, cur, info):
     cfg["L"] = loc(E.L, i)
     cfg["cur"] = E.CUR
     cfg.setdefault("offices", loc(E.OFFICES, i))
+    if key == "passport-application":
+        cfg["passportPdf"] = True
     blob = json.dumps(cfg, ensure_ascii=False).replace("</", "<\\/")
     term = key == "passport-application"
     menu = ""
@@ -376,10 +378,10 @@ def eservice_page(i, hl, cur, info):
         '<div class="es-bar wrap"><span class="langs">%s</span><a href="%s">%s</a></div>'
         '<div class="wrap"><div class="es-title">%s</div><div class="es-body%s">%s<div class="es-main">%s<div id="svc" class="svc"%s></div></div></div></div>'
         '<footer class="es-f"><div class="wrap"><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a></div></footer>'
-        '<script type="application/json" id="svc-cfg">%s</script><script src="%%A%%immd.js"></script><script src="%%A%%svc.js"></script></body></html>'
+        '<script type="application/json" id="svc-cfg">%s</script><script src="%%A%%immd.js"></script>%s<script src="%%A%%svc.js"></script></body></html>'
         % (hl, html.escape(g(info["title"], i)), html.escape(g(M.UI["dept"], i)), up, up, LANGS[i][0], U("dept", i), U("govline", i), lang_links(i, cur), rel(cur, ""), U("exit", i),
            t(info["title"], i), " has-menu" if term else "", menu, term_html, " hidden" if term else "",
-           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob))
+           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, '<script src="%A%passport-pdf.js"></script>' if term else ""))
     return finish(txt, cur)
 
 

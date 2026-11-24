@@ -446,6 +446,15 @@
       rows.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
       box.appendChild(dl);
       if (cfg.doneNote) box.appendChild(el("p", { cls: "hint", html: cfg.doneNote }));
+      if (cfg.passportPdf && window.BHGPassportPDF && S.files.photo) {
+        var pb = el("button", { type: "button", cls: "btn", text: L.dlPassport });
+        pb.addEventListener("click", function () {
+          pb.disabled = true; pb.textContent = L.generating;
+          window.BHGPassportPDF(S.vals, S.files.photo).then(function () { pb.disabled = false; pb.textContent = L.dlPassport; },
+            function () { pb.disabled = false; pb.textContent = L.dlPassport; });
+        });
+        box.appendChild(el("p", { cls: "dlp" }, [pb]));
+      }
     }
     render();
   }
