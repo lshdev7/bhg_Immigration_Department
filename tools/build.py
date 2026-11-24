@@ -73,11 +73,11 @@ ARTICLES = {
     "contact/branch-offices": (I.BRANCH_TITLE, I.BRANCH), "contact/hq-offices": (I.HQ_TITLE, I.HQ),
 }
 BLOCK_TARGET = {
-    "idbook": "eservices/idcard-booking/loading", "apply": "eservices/passport-application/loading", "appointment": "eservices/travel-document-booking/loading",
+    "idbook": "eservices/idcard-booking/loading", "idapply": "eservices/idcard-application/loading", "apply": "eservices/passport-application/loading", "appointment": "eservices/travel-document-booking/loading",
     "photo": SV + "/photo", "fees": SV + "/fees", "faq": SV + "/faq",
 }
 ESERVICES = {
-    "passport-application": lambda: E.PASSPORT, "travel-document-booking": lambda: E.booking("td"), "idcard-booking": lambda: E.booking("id"),
+    "passport-application": lambda: E.PASSPORT, "travel-document-booking": lambda: E.booking("td"), "idcard-booking": lambda: E.booking("id"), "idcard-application": lambda: E.IDCARD,
     "travel-document-status": lambda: E.TD_STATUS, "application-status": lambda: E.VISA_STATUS,
 }
 
@@ -381,12 +381,12 @@ def eservice_page(i, hl, cur, info):
         '<script type="application/json" id="svc-cfg">%s</script><script src="%%A%%immd.js"></script>%s<script src="%%A%%svc.js"></script></body></html>'
         % (hl, html.escape(g(info["title"], i)), html.escape(g(M.UI["dept"], i)), up, up, LANGS[i][0], U("dept", i), U("govline", i), lang_links(i, cur), rel(cur, ""), U("exit", i),
            t(info["title"], i), " has-menu" if term else "", menu, term_html, " hidden" if term else "",
-           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, '<script src="%A%passport-pdf.js"></script>' if term else ""))
+           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, '<script src="%A%passport-pdf.js"></script>' + ('<script src="%A%id-pdf.js"></script>' if key == "idcard-application" else "") if key in ("passport-application", "idcard-application") else ""))
     return finish(txt, cur)
 
 
 LOADING_SYS = {"passport-application": "EPASSPORT2", "travel-document-booking": "EPASSPORT2", "travel-document-status": "EPASSPORT2",
-               "idcard-booking": "SMARTICS2", "application-status": "EVISA2"}
+               "idcard-booking": "SMARTICS2", "idcard-application": "SMARTICS2", "application-status": "EVISA2"}
 
 
 def loading_page(i, hl, cur, info):

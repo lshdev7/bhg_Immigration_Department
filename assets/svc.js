@@ -92,6 +92,13 @@
       }
       case "cvv": if (!/^\d{3,4}$/.test(s)) return L.errCvv; break;
       case "num": if (!/^\d+(\.\d+)?$/.test(s)) return L.errNum; break;
+      case "mmyy": { var mm = /^(\d{2})-(\d{2})$/.exec(s); if (!mm || +mm[1] < 1 || +mm[1] > 12) return L.errMMYY; break; }
+      case "age11": {
+        if (!validDate(s)) return L.errAge11;
+        var b = new Date(s + "T00:00:00"), n = today(), a = n.getFullYear() - b.getFullYear();
+        if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
+        if (a < 11) return L.errAge11; break;
+      }
       case "ref": if (!/^[A-Za-z0-9\-]{6,20}$/.test(s)) return L.errRef; break;
     }
     return "";
@@ -526,6 +533,15 @@
       rows.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
       box.appendChild(dl);
       if (cfg.doneNote) box.appendChild(el("p", { cls: "hint", html: cfg.doneNote }));
+      if (cfg.idcardPdf && window.BHGIdCardPDF && S.files.photo) {
+        var ib = el("button", { type: "button", cls: "btn", text: L.dlIdcard });
+        ib.addEventListener("click", function () {
+          ib.disabled = true; ib.textContent = L.generating;
+          window.BHGIdCardPDF(S.vals, S.files.photo).then(function () { ib.disabled = false; ib.textContent = L.dlIdcard; },
+            function () { ib.disabled = false; ib.textContent = L.dlIdcard; });
+        });
+        box.appendChild(el("p", { cls: "dlp" }, [ib]));
+      }
       if (cfg.passportPdf && window.BHGPassportPDF && S.files.photo) {
         var pb = el("button", { type: "button", cls: "btn", text: L.dlPassport });
         pb.addEventListener("click", function () {

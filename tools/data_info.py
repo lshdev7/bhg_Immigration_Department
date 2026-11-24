@@ -320,6 +320,7 @@ SMARTID = [
     ("p", ("The Baekhyeon Hwarang Smart Identity Card is issued to Baekhyeon Hwarang residents. Applicants must attend the Immigration Department in person for the capture of biometric data. You can make an appointment online for the application or collection of a Smart Identity Card.",
            "백현화랑 스마트 신분증은 백현화랑 주민에게 발급됩니다. 신청인은 생체 정보 등록을 위해 출입경사무처를 직접 방문해야 합니다. 스마트 신분증의 신청 또는 수령을 온라인으로 예약할 수 있습니다.",
            "柏峴화랑智能身份證發給柏峴화랑居民。申請人須親身到入境事務處辦理，以便採集生物特徵資料。你可在網上預約申領或領取智能身份證。")),
+    ("btn", ("Online Application for Baekhyeon Hwarang Smart Identity Card", "백현화랑 스마트 신분증 온라인 신청", "網上申領柏峴화랑智能身份證"), "idapply"),
     ("btn", ("Book Appointment to Apply for Baekhyeon Hwarang Smart Identity Card", "백현화랑 스마트 신분증 신청 예약", "預約申領柏峴화랑智能身份證"), "idbook"),
     ("h2", ("Who Should Apply", "신청 대상", "誰須申請")),
     ("ul", [

@@ -52,6 +52,9 @@ L = {
     "stepFmt": ("Step {n}: {t}", "{n}단계: {t}", "步驟{n}：{t}"),
     "bhPlace": ("Baekhyeon Hwarang", "백현화랑", "柏峴화랑"),
     "dlPassport": ("Download passport (PDF)", "여권 내려받기(PDF)", "下載護照（PDF）"),
+    "dlIdcard": ("Download identity card (PDF)", "신분증 내려받기(PDF)", "下載身份證（PDF）"),
+    "errMMYY": ("Please enter the month and year as MM-YY (e.g. 06-96).", "월·년을 MM-YY 형식으로 입력하세요(예: 06-96).", "請以MM-YY格式輸入月份及年份（例如06-96）。"),
+    "errAge11": ("Please enter a valid date of birth. Applicants must be aged 11 or above.", "올바른 생년월일을 입력하세요. 만 11세 이상만 신청할 수 있습니다.", "請輸入有效的出生日期。申請人須年滿11歲。"),
     "cropTitle": ("Adjust your photograph", "사진 맞추기", "調整照片"),
     "cropHint": ("Drag the photograph to move it and use the slider (or mouse wheel) to zoom, so that your face fits the oval guide. It will be saved as a 40 mm x 50 mm photograph (1280 x 1600 pixels).",
                  "사진을 끌어서 옮기고 슬라이더(또는 마우스 휠)로 확대해 얼굴이 타원 안내선 안에 들어오게 맞추세요. 40mm x 50mm 사진(1280 x 1600픽셀)으로 저장됩니다.",
@@ -344,3 +347,62 @@ PASSPORT["steps"] = [
     dict(_s[8], title=("Online Payment", "온라인 결제", "網上付款")),
     dict(_s[9], title=("Acknowledgement", "접수 확인", "確認")),
 ]
+
+
+# ----------------------------------------------------------------------------- Smart identity card (online application)
+IDCARD = {
+    "type": "wizard", "prefix": "ID", "idcardPdf": True,
+    "title": ("Online Application for Baekhyeon Hwarang Smart Identity Card", "백현화랑 스마트 신분증 온라인 신청", "網上申領柏峴화랑智能身份證"),
+    "fee": {
+        "base": [
+            {"when": {"idtype": "lost"}, "l": ("Replacement of identity card (lost)", "신분증 재발급(분실)", "補領身份證（遺失）"), "amt": 370},
+            {"when": {"idtype": "damaged"}, "l": ("Replacement of identity card (damaged / defaced)", "신분증 재발급(훼손·오손)", "補領身份證（損毀／污損）"), "amt": 370},
+        ],
+    },
+    "steps": [
+        {"title": ("Application Type", "신청 유형", "申請類別"), "fields": [
+            F("idtype", ("Type of application", "신청 종류", "申請種類"), "radio", req=True, o=[
+                ["first", ("First registration", "최초 등록", "首次登記")],
+                ["lost", ("Replacement due to loss", "분실에 따른 재발급", "因遺失而補領")],
+                ["damaged", ("Replacement due to damage / defacement", "훼손·오손에 따른 재발급", "因損毀／污損而補領")],
+                ["change", ("Replacement due to change of particulars", "인적사항 변경에 따른 재발급", "因更改個人資料而換領")]]),
+            F("oldid", ("Existing identity card number", "기존 신분증 번호", "現有身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True, showIf={"n": "idtype", "ne": "first"}),
+            F("firstreg", ("Month and year of first registration (MM-YY)", "최초 등록 월·년(MM-YY)", "首次登記月份及年份（MM-YY）"), req=True, v="mmyy", ph="MM-YY", showIf={"n": "idtype", "ne": "first"}),
+            F("status", ("Residence status", "거주 자격", "居留身份"), "radio", req=True, o=[
+                ["A", ("Permanent resident with the right of abode", "거주권이 있는 영주권자", "擁有居留權的永久性居民")],
+                ["R", ("Resident with the right to land", "입경권이 있는 주민", "擁有入境權的居民")],
+                ["U", ("Non-permanent resident – no conditions of stay", "비영주 주민 – 체류 조건 없음", "非永久性居民 – 沒有逗留條件")],
+                ["C", ("Non-permanent resident – stay limited by conditions", "비영주 주민 – 체류 조건 있음", "非永久性居民 – 逗留受條件限制")]]),
+            F("kornat", ("Nationality", "국적", "國籍"), "radio", req=True, o=[["KOR", ("Korean", "대한민국", "大韓民國")], ["OTH", ("Other", "기타", "其他")]]),
+        ]},
+        {"title": ("Personal Particulars", "인적사항", "個人資料"), "fields": [
+            F("surname", ("Surname (in English)", "성(영문)", "姓氏（英文）"), req=True, v="enname", ph="CHOI", rl=("Surname", "성", "姓氏")),
+            F("given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname", ph="Yu Na", rl=("Given names", "이름", "名字")),
+            F("local", ("Name in Chinese / Korean characters (if any)", "한글·한자 성명(있는 경우)", "中文／韓文姓名（如有）")),
+            F("sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
+            F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="age11", ph="YYYY-MM-DD", h=("Applicants must be aged 11 or above.", "만 11세 이상만 신청할 수 있습니다.", "申請人須年滿11歲。")),
+            F("pob", ("Place of birth (country / territory)", "출생지(국가·지역)", "出生地點（國家／地區）"), "country", req=True),
+            F("chgbirth", ("Has your date or place of birth been changed since first registration?", "최초 등록 이후 생년월일이나 출생지가 변경되었습니까?", "首次登記後，你的出生日期或出生地點有否更改？"), "radio", req=True, o=[["Y", ("Yes", "예", "有")], ["N", ("No", "아니요", "沒有")]]),
+            F("chgname", ("Has your name been changed, or a Chinese / Korean name added, since first registration?", "최초 등록 이후 이름이 바뀌었거나 한글·한자 이름이 추가되었습니까?", "首次登記後，你的姓名有否更改或加入中文／韓文姓名？"), "radio", req=True, o=[["Y", ("Yes", "예", "有")], ["N", ("No", "아니요", "沒有")]]),
+            F("dobproof", ("Will you produce a birth certificate or passport to confirm your date of birth?", "생년월일 확인을 위해 출생증명서나 여권을 제출합니까?", "你會否出示出生證明書或護照以確認出生日期？"), "radio", req=True, o=[["Y", ("Yes", "예", "會")], ["N", ("No", "아니요", "不會")]]),
+            F("mobile", ("Mobile phone number", "휴대전화 번호", "流動電話號碼"), "tel", req=True, v="tel", sens=True),
+            F("email", ("Email address", "이메일 주소", "電郵地址"), "email", req=True, v="email", sens=True),
+            F("addr", ("Residential address", "거주지 주소", "住址"), "textarea", req=True, full=True),
+        ]},
+        {"title": ("Attach Photograph", "사진 첨부", "附加照片"),
+         "intro": ("<p>Upload a recent colour photograph in plain white background. After choosing the file you can move, zoom and rotate it to fit the frame.</p>",
+                   "<p>흰색 배경의 최근 컬러 사진을 올려 주세요. 파일을 고른 뒤 틀에 맞게 옮기고 확대·회전할 수 있습니다.</p>",
+                   "<p>請上載背景為白色的彩色近照。選擇檔案後，你可移動、縮放及旋轉照片以配合框架。</p>"),
+         "fields": [F("photo", ("Photograph", "사진", "照片"), "photo", req=True, full=True)]},
+        {"title": ("Collection Means", "수령 방법", "領取方式"), "fields": [F("office", ("Office for collection", "수령 사무소", "領取辦事處"), "select", req=True, o=OFFICES)]},
+        {"title": ("Confirmation, Declaration and Submission", "확인·선서·제출", "確認、聲明及遞交"), "type": "review"},
+        {"title": ("Online Payment", "온라인 결제", "網上付款"), "type": "pay", "showIf": {"n": "idtype", "in": ["lost", "damaged"]}},
+        {"title": ("Acknowledgement", "접수 확인", "確認"), "type": "done"},
+    ],
+    "declare": F("declare", ("I declare that the information given in this application is true and correct.", "이 신청서에 기재한 정보가 사실이며 정확함을 선서합니다.", "本人聲明本申請所填報的資料全部屬實及正確。"), "checkbox", req=True),
+    "pay": PASSPORT["pay"],
+    "doneText": ("<strong>Your application has been submitted successfully.</strong> Please collect your new identity card at the selected office with the acknowledgement.",
+                 "<strong>신청이 정상적으로 제출되었습니다.</strong> 접수 확인서를 지참하고 선택한 사무소에서 새 신분증을 수령하세요.",
+                 "<strong>你的申請已成功遞交。</strong>請攜同確認通知到所選定的辦事處領取新身份證。"),
+    "doneRows": [{"n": "surname", "l": ("Surname", "성", "姓氏")}, {"n": "given", "l": ("Given names", "이름", "名字")}, {"n": "office", "l": ("Office for collection", "수령 사무소", "領取辦事處"), "o": OFFICES}],
+}

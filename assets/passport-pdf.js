@@ -248,6 +248,7 @@
   }
 
   /* ---------------------------------------------------------------- public entry */
+  window.BHGMakePDF = makePDF;
   window.BHGPassportPDF = function (vals, photoFile) {
     var d = build(vals || {});
     var photoUrl = URL.createObjectURL(photoFile);
