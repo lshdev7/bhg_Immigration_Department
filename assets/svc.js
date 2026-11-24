@@ -107,18 +107,75 @@
     return r;
   }
 
-  function photoCheck(file, done) {
-    if (!/^image\/jpeg$/.test(file.type) && !/\.jpe?g$/i.test(file.name)) return done(L.errPhotoType);
-    if (file.size > 5 * 1024 * 1024) return done(L.errPhotoSize);
+  /* Photo cropper: move / zoom / rotate the picture inside a 40:50 frame and export 1280 x 1600 JPEG. */
+  var OUT_W = 1280, OUT_H = 1600, VW = 300, VH = 375, MIN_SRC_W = 600;
+  function openCropper(file, host, onDone, onCancel) {
     var url = URL.createObjectURL(file), img = new Image();
+    img.onerror = function () { URL.revokeObjectURL(url); onCancel(L.errPhotoType); };
     img.onload = function () {
-      var w = img.naturalWidth, h = img.naturalHeight, ratio = w / h;
       URL.revokeObjectURL(url);
-      if (w < 1200 || h < 1600) return done(L.errPhotoDim);
-      if (Math.abs(ratio - 0.8) > 0.03) return done(L.errPhotoRatio);
-      done("");
+      var src = img, zoom = 1, sc, ox, oy;
+      var box = el("div", { cls: "crop" });
+      var cv = el("canvas", { width: VW, height: VH, cls: "crop-cv", "aria-label": L.cropTitle });
+      var zr = el("input", { type: "range", min: "1", max: "4", step: "0.01", value: "1", "aria-label": L.zoom });
+      var err = el("div", { cls: "err", role: "alert" });
+      var ctx = cv.getContext("2d");
+      function base() { return Math.max(VW / src.width, VH / src.height); }
+      function clamp() {
+        ox = Math.min(0, Math.max(VW - src.width * sc, ox));
+        oy = Math.min(0, Math.max(VH - src.height * sc, oy));
+      }
+      function reset() { sc = base() * zoom; ox = (VW - src.width * sc) / 2; oy = (VH - src.height * sc) / 2; clamp(); draw(); }
+      function setZoom(z) {
+        var cx = (VW / 2 - ox) / sc, cy = (VH / 2 - oy) / sc;
+        zoom = Math.min(4, Math.max(1, z)); zr.value = String(zoom);
+        sc = base() * zoom; ox = VW / 2 - cx * sc; oy = VH / 2 - cy * sc; clamp(); draw();
+      }
+      function draw() {
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, VW, VH);
+        ctx.drawImage(src, ox, oy, src.width * sc, src.height * sc);
+        // face guide: crown-to-chin 32-36 mm of the 50 mm photo height
+        ctx.save(); ctx.strokeStyle = "rgba(0,120,140,.9)"; ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(VW / 2, VH * .46, VW * .27, VH * .34, 0, 0, 7); ctx.stroke();
+        ctx.setLineDash([2, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(VW / 2, 0); ctx.lineTo(VW / 2, VH); ctx.stroke(); ctx.restore();
+      }
+      var drag = null;
+      cv.addEventListener("pointerdown", function (e) { drag = { x: e.clientX, y: e.clientY, ox: ox, oy: oy }; cv.setPointerCapture(e.pointerId); });
+      cv.addEventListener("pointermove", function (e) { if (!drag) return; ox = drag.ox + e.clientX - drag.x; oy = drag.oy + e.clientY - drag.y; clamp(); draw(); });
+      cv.addEventListener("pointerup", function () { drag = null; });
+      cv.addEventListener("wheel", function (e) { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+      zr.addEventListener("input", function () { setZoom(parseFloat(zr.value)); });
+      var rot = el("button", { type: "button", cls: "btn sec", text: L.rotate });
+      rot.addEventListener("click", function () {
+        var c = document.createElement("canvas"); c.width = src.height; c.height = src.width;
+        var x = c.getContext("2d"); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(src, 0, 0);
+        src = c; zoom = 1; zr.value = "1"; reset();
+      });
+      var ok = el("button", { type: "button", cls: "btn", text: L.cropApply });
+      ok.addEventListener("click", function () {
+        if (VW / sc < MIN_SRC_W) { err.textContent = L.errCropSmall; return; }
+        var out = document.createElement("canvas"); out.width = OUT_W; out.height = OUT_H;
+        var x = out.getContext("2d"), k = OUT_W / VW;
+        x.fillStyle = "#fff"; x.fillRect(0, 0, OUT_W, OUT_H);
+        x.drawImage(src, ox * k, oy * k, src.width * sc * k, src.height * sc * k);
+        out.toBlob(function (b) {
+          if (!b) { err.textContent = L.errPhotoType; return; }
+          if (b.size > 5 * 1024 * 1024) { err.textContent = L.errPhotoSize; return; }
+          box.remove();
+          onDone(new File([b], "photo.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", 0.92);
+      });
+      var no = el("button", { type: "button", cls: "btn sec", text: L.cropCancel });
+      no.addEventListener("click", function () { box.remove(); onCancel(""); });
+      box.appendChild(el("p", { cls: "crop-t", text: L.cropTitle }));
+      box.appendChild(el("p", { cls: "hint", text: L.cropHint }));
+      box.appendChild(cv);
+      box.appendChild(el("label", { cls: "crop-z" }, [el("span", { text: L.zoom }), zr]));
+      box.appendChild(err);
+      box.appendChild(el("div", { cls: "nav" }, [rot, no, ok]));
+      host.appendChild(box);
+      reset();
     };
-    img.onerror = function () { URL.revokeObjectURL(url); done(L.errPhotoType); };
     img.src = url;
   }
 
@@ -152,24 +209,35 @@
         ctl = el("textarea", { id: id, rows: 3 }); ctl.value = v || "";
         ctl.addEventListener("input", function () { S.vals[f.n] = ctl.value; });
       } else if (f.t === "file" || f.t === "photo") {
-        var inp = el("input", { type: "file", id: id, accept: f.t === "photo" ? "image/jpeg" : "image/jpeg,image/gif,image/tiff,application/pdf" });
+        var inp = el("input", { type: "file", id: id, accept: f.t === "photo" ? "image/*" : "image/jpeg,image/gif,image/tiff,application/pdf" });
         var prev = el("div", { cls: "prev" });
         if (S.files[f.n]) prev.textContent = S.files[f.n].name;
         inp.addEventListener("change", function () {
           var file = inp.files && inp.files[0];
           clear(prev); S.files[f.n] = null; S.vals[f.n] = "";
           if (!file) return;
+          var orig = file;
           function ok() {
+            clear(prev);
             S.files[f.n] = file; S.vals[f.n] = file.name;
             if (f.t === "photo") {
               var u = URL.createObjectURL(file), im = el("img", { src: u, alt: "", cls: "pphoto" });
               im.onload = function () { URL.revokeObjectURL(u); };
               prev.appendChild(im);
-            }
-            prev.appendChild(el("span", { text: file.name }));
+              var again = el("button", { type: "button", cls: "btn sec", text: L.cropAgain });
+              again.addEventListener("click", function () { crop(); });
+              prev.appendChild(again);
+            } else prev.appendChild(el("span", { text: file.name }));
             setErr(wrap, "");
           }
-          if (f.t === "photo") photoCheck(file, function (msg) { if (msg) { inp.value = ""; setErr(wrap, msg); } else ok(); });
+          function crop() {
+            var old = wrap.querySelector(".crop"); if (old) old.remove();
+            openCropper(orig, wrap, function (out) { file = out; ok(); }, function (msg) { if (msg) { inp.value = ""; setErr(wrap, msg); } });
+          }
+          if (f.t === "photo") {
+            if (!/^image\//.test(file.type)) { inp.value = ""; setErr(wrap, L.errPhotoType); return; }
+            crop();
+          }
           else if (file.size > 2 * 1024 * 1024) { inp.value = ""; setErr(wrap, L.errFileSize); }
           else ok();
         });

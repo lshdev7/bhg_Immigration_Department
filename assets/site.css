@@ -177,3 +177,12 @@ body.es{background:#fff;font-size:15px}
 .prog li.on{background:#a14a08}.prog li.done{background:#f1dcc6;color:#7a3300}
 .btn{background:linear-gradient(#5d463a,#3f2d24);border-color:#2a1c15}.btn.sec{background:#fff;color:#4f3a2f;border-color:#4f3a2f}
 .pickd{font-weight:700;margin:0 0 8px}
+
+/* photo cropper */
+.crop{margin-top:12px;padding:14px;border:1px solid #ccc;border-radius:6px;background:#fafafa;max-width:360px}
+.crop-t{font-weight:700;margin:0 0 4px}.crop .hint{margin:0 0 10px}
+.crop-cv{display:block;width:300px;height:375px;max-width:100%;border:1px solid #888;cursor:grab;touch-action:none;background:#fff}
+.crop-cv:active{cursor:grabbing}
+.crop-z{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}.crop-z input{flex:1}
+.crop .nav{margin-top:12px}
+.prev .btn{margin-top:4px;padding:6px 14px;font-size:13px}
