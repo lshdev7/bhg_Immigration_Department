@@ -47,14 +47,20 @@
     for (i = num.length - 1; i >= 0; i--) { d = +num.charAt(i); if (alt) { d *= 2; if (d > 9) d -= 9; } s += d; alt = !alt; }
     return s % 10 === 0;
   }
-  function bhidOK(v) {
-    var m = /^([A-Z]{1,2})(\d{6})\(([0-9A])\)$/.exec(v.toUpperCase().replace(/\s/g, ""));
-    if (!m) return false;
-    var l = m[1], sum = 0, i, c = function (ch) { return ch.charCodeAt(0) - 55; };
-    if (l.length === 1) sum = 36 * 9 + c(l) * 8; else sum = c(l.charAt(0)) * 9 + c(l.charAt(1)) * 8;
-    for (i = 0; i < 6; i++) sum += (+m[2].charAt(i)) * (7 - i);
-    var chk = (11 - (sum % 11)) % 11;
-    return (chk === 10 ? "A" : String(chk)) === m[3];
+  /* HKID-style number: 1-2 letters, 6 digits, check character 0-9 or A (brackets optional).
+     Any number in this format is accepted; the check character is not recalculated. */
+  var ID_RE = /^([A-Z]{1,2})(\d{6})\(?([0-9A])\)?$/;
+  function bhidOK(v) { return ID_RE.test(String(v).toUpperCase().replace(/\s/g, "")); }
+  function normId(v) { var m = ID_RE.exec(String(v).toUpperCase().replace(/\s/g, "")); return m ? m[1] + m[2] + "(" + m[3] + ")" : v; }
+  /* Place of birth: country / territory list (ISO 3166-1), names localised by the browser */
+  var ISO = "AF AX AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BQ BA BW BV BR IO BN BG BF BI CV KH CM CA KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CW CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM VA HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF MK MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW BL SH KN LC MF PM VC WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS SS ES LK SD SR SJ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VE VN VG VI WF EH YE ZM ZW".split(" ");
+  function countryOptions() {
+    var lang = document.documentElement.lang || "en", dn = null;
+    try { dn = new Intl.DisplayNames([lang], { type: "region" }); } catch (e) { dn = null; }
+    var list = ISO.map(function (c) { var n = c; try { n = dn ? dn.of(c) : c; } catch (e) { n = c; } return [c, n]; });
+    list.sort(function (a, b) { return a[1].localeCompare(b[1], lang); });
+    var kr = list.filter(function (o) { return o[0] === "KR"; });
+    return [["BHG", L.bhPlace]].concat(kr, list.filter(function (o) { return o[0] !== "KR"; }));
   }
   function validDate(v) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
@@ -200,7 +206,8 @@
       wrap.appendChild(el("div", { cls: "infotxt", html: f.l }));
     } else {
       wrap.appendChild(el("label", { cls: "lbl", "for": id, html: f.l + (f.req ? ' <b class="req">*</b>' : "") }));
-      if (f.t === "select") {
+      if (f.t === "country") f.o = countryOptions();
+      if (f.t === "select" || f.t === "country") {
         ctl = el("select", { id: id }, [el("option", { value: "", text: L.choose })].concat(f.o.map(function (o) { return el("option", { value: o[0], text: o[1] }); })));
         ctl.value = v || "";
         ctl.addEventListener("change", function () { S.vals[f.n] = ctl.value; onChange(f); });
@@ -351,7 +358,13 @@
           wrap = wrapRoot.querySelector('[data-n="' + f.n + '"]');
         } else if (f.t === "file" || f.t === "photo") {
           if (f.req && !S.files[f.n]) msg = L.errReq;
-        } else msg = checkField(f, S.vals[f.n], S.vals);
+        } else {
+          msg = checkField(f, S.vals[f.n], S.vals);
+          if (!msg && f.v === "bhid" && S.vals[f.n]) {
+            S.vals[f.n] = normId(S.vals[f.n]);
+            var idIn = document.getElementById("f_" + f.n); if (idIn) idIn.value = S.vals[f.n];
+          }
+        }
         if (msg && wrap) { setErr(wrap, msg); ok = false; }
         else if (wrap) setErr(wrap, "");
       });

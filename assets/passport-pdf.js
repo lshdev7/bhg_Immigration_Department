@@ -36,6 +36,11 @@
     if (sp.length > 1) return [sp[0], sp.slice(1).join(" ")];
     return [s.charAt(0), s.slice(1)];
   }
+  function placeName(code) {
+    if (!code) return "";
+    if (code === "BHG") return "BAEKHYEON HWARANG";
+    try { return new Intl.DisplayNames(["en"], { type: "region" }).of(code).toUpperCase(); } catch (e) { return String(code).toUpperCase(); }
+  }
   function build(v) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.dob || "") || [0, 2000, 1, 1];
     var dob = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
@@ -45,7 +50,7 @@
     var loc = splitLocal(v.local);
     var d = {
       surname: (v.surname || "").toUpperCase(), given: (v.given || "").toUpperCase(), locS: loc[0], locG: loc[1],
-      sex: v.sex === "F" ? "F" : "M", dob: parts(dob), iss: parts(now), exp: parts(exp), pob: (v.pob || "").toUpperCase(), no: no,
+      sex: v.sex === "F" ? "F" : "M", dob: parts(dob), iss: parts(now), exp: parts(exp), pob: placeName(v.pob), no: no,
       pages: v.pages === "48" ? 48 : 32
     };
     d.mrz = mrz(d);
@@ -140,7 +145,9 @@
     text(x, (d.locG ? d.locG + " / " : "") + d.given, 420, 316, 36, "700", .9);
     text(x, fmt(d.dob), 893, 394, 34, "700", .92);
     text(x, d.sex, 420, 462, 34, "700", .92);
-    text(x, d.pob, 893, 462, 34, "700", .92);
+    x.font = '700 34px "Arial Narrow","Roboto Condensed","Helvetica Neue",Arial,sans-serif';
+    var pw = x.measureText(d.pob).width * .92;
+    text(x, d.pob, 893, 462, 34, "700", pw > 340 ? .92 * 340 / pw : .92);
     text(x, fmt(d.iss), 420, 532, 34, "700", .92);
     text(x, fmt(d.exp), 893, 532, 34, "700", .92);
     // machine readable zone
