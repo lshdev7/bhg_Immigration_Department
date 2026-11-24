@@ -351,8 +351,14 @@
   var EME_MAP = {
     surname: function (r) { return String(r.name_en || "").split(",")[0].trim(); },
     given: function (r) { return String(String(r.name_en || "").split(",")[1] || "").trim(); },
-    local: "name_local", sex: "sex", dob: "dob", idno: "id_no", email: "email", mobile: "mobile", addr: "residential_address", marital: "marital"
+    local: "name_local", sex: "sex", dob: "dob", idno: "id_no", email: "email", mobile: "mobile", addr: "residential_address", marital: "marital",
+    status: "res_status",
+    pob: function (r) { return r.pob === "BHG" || r.pob === "KR" ? r.pob : ""; },
+    nat: function (r) { return r.nationality === "KOR" ? "KR" : ""; },
+    kornat: function (r) { return r.nationality ? (r.nationality === "KOR" ? "KOR" : "OTH") : ""; }
   };
+  var EME_KEY = { surname: "name_en", given: "name_en", pob: "pob", nat: "nationality", kornat: "nationality" };
+  function emeValue(f, r) { var m = EME_MAP[f.n]; return typeof m === "function" ? m(r) : r[m]; }
   function Wizard(cfg, container) {
     var S = { step: 0, vals: {}, files: {}, done: false };
     var host = el("div", { cls: "wiz" });
@@ -433,13 +439,19 @@
       else {
         var grid = el("div", { cls: "grid" });
         var emeF = fieldsOf(s).filter(function (f) { return EME_MAP[f.n]; });
+        var sess = window.IASClient && window.IASClient.session();
+        if (sess) {   // logged in with iAM Smart: the profile was given at login, so empty fields are filled at once
+          emeF.forEach(function (f) { if (S.vals[f.n] === undefined || S.vals[f.n] === "") { var v = emeValue(f, sess); if (v) S.vals[f.n] = v; } });
+        }
         if (window.IASClient && emeF.length >= 2) {
           var fb = el("button", { type: "button", cls: "btn sec iasfill", html: window.IASClient.logo + " " + window.IASClient.text("fill") });
           fb.addEventListener("click", function () {
+            var now = window.IASClient.session();
+            if (now) { emeF.forEach(function (f) { var v = emeValue(f, now); if (v) S.vals[f.n] = v; }); render(); return; }
             var scope = [];
-            emeF.forEach(function (f) { var k = typeof EME_MAP[f.n] === "string" ? EME_MAP[f.n] : "name_en"; if (scope.indexOf(k) < 0) scope.push(k); });
+            emeF.forEach(function (f) { var k = EME_KEY[f.n] || EME_MAP[f.n]; if (scope.indexOf(k) < 0) scope.push(k); });
             window.IASClient.request("eme", scope).then(function (r) {
-              emeF.forEach(function (f) { var m = EME_MAP[f.n], v = typeof m === "function" ? m(r) : r[m]; if (v) S.vals[f.n] = v; });
+              emeF.forEach(function (f) { var v = emeValue(f, r); if (v) S.vals[f.n] = v; });
               render();
             }, function () { /* cancelled */ });
           });
