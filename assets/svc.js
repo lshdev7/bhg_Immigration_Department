@@ -108,7 +108,7 @@
   }
 
   /* Photo cropper: move / zoom / rotate the picture inside a 40:50 frame and export 1280 x 1600 JPEG. */
-  var OUT_W = 1280, OUT_H = 1600, VW = 300, VH = 375, MIN_SRC_W = 600;
+  var OUT_W = 1280, OUT_H = 1600, VW = 300, VH = 375, MIN_SRC_W = 300;
   function openCropper(file, host, onDone, onCancel) {
     var url = URL.createObjectURL(file), img = new Image();
     img.onerror = function () { URL.revokeObjectURL(url); onCancel(L.errPhotoType); };
