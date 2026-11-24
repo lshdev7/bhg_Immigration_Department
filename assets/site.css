@@ -206,3 +206,6 @@ body.es{background:#fff;font-size:15px}
 .vrel{columns:2;column-gap:30px;font-size:15px}
 @media (max-width:900px){.vcols{grid-template-columns:1fr}.vrel{columns:1}.vtabs button{font-size:14px;padding:8px 10px}}
 .onl{width:100%}.onl th.og{background:var(--teal);color:#fff;text-align:left;font-size:17px;padding:10px 14px}.onl td{padding:10px 14px 10px 28px;border-bottom:1px solid #e3e3e3}.onl td a{color:#9a4a1c;text-decoration:underline}
+
+/* iAM Smart */
+.tools #ias-login{margin-right:6px}.tools .ias-btn{font-size:13px;padding:4px 10px}.es-bar #ias-login{margin-left:auto;margin-right:12px}.iasfill{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px}

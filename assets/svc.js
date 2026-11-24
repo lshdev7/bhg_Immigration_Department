@@ -347,6 +347,12 @@
   }
 
   /* ------------------------------------------------------------------ wizard */
+  /* "e-ME" form filling with iAM Smart: form field -> e-ME data */
+  var EME_MAP = {
+    surname: function (r) { return String(r.name_en || "").split(",")[0].trim(); },
+    given: function (r) { return String(String(r.name_en || "").split(",")[1] || "").trim(); },
+    local: "name_local", sex: "sex", dob: "dob", idno: "id_no", email: "email", mobile: "mobile", addr: "residential_address", marital: "marital"
+  };
   function Wizard(cfg, container) {
     var S = { step: 0, vals: {}, files: {}, done: false };
     var host = el("div", { cls: "wiz" });
@@ -426,6 +432,19 @@
       else if (s.type === "done") renderDone(box);
       else {
         var grid = el("div", { cls: "grid" });
+        var emeF = fieldsOf(s).filter(function (f) { return EME_MAP[f.n]; });
+        if (window.IASClient && emeF.length >= 2) {
+          var fb = el("button", { type: "button", cls: "btn sec iasfill", html: window.IASClient.logo + " " + window.IASClient.text("fill") });
+          fb.addEventListener("click", function () {
+            var scope = [];
+            emeF.forEach(function (f) { var k = typeof EME_MAP[f.n] === "string" ? EME_MAP[f.n] : "name_en"; if (scope.indexOf(k) < 0) scope.push(k); });
+            window.IASClient.request("eme", scope).then(function (r) {
+              emeF.forEach(function (f) { var m = EME_MAP[f.n], v = typeof m === "function" ? m(r) : r[m]; if (v) S.vals[f.n] = v; });
+              render();
+            }, function () { /* cancelled */ });
+          });
+          box.appendChild(fb);
+        }
         fieldsOf(s).forEach(function (f) {
           grid.appendChild(buildField(f, S, function () { refreshVis(s, box); }));
         });

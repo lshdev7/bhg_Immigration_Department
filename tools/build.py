@@ -162,7 +162,7 @@ def lang_links(i, cur):
 def header(i, cur):
     nav = "".join('<li><a href="%s"%s>%s</a></li>' % (rel(cur, s), ' class="on"' if (cur == s or cur.startswith(s + "/")) else "", t(tt, i)) for s, tt in M.NAV)
     return (
-        '<header class="hd"><div class="wrap hd-in">%s<div class="hd-r"><div class="tools"><a href="%s" class="ico" aria-label="%s">&#8962;</a>'
+        '<header class="hd"><div class="wrap hd-in">%s<div class="hd-r"><div class="tools"><span id="ias-login"></span><a href="%s" class="ico" aria-label="%s">&#8962;</a>'
         '<span class="langs">%s</span><span class="ol">%s</span><button type="button" id="textsize">%s</button></div>'
         '<form class="sq" role="search"><input type="search" placeholder="%s" aria-label="%s"></form></div></div>'
         '<nav class="nv" aria-label="Main"><div class="wrap"><ul>%s</ul></div></nav></header>'
@@ -200,8 +200,16 @@ def finish(text, cur):
     return text.replace("%A%", "../" * (depth(cur) + 1) + "assets/")
 
 
-def tail(extra=""):
-    return '<script src="%A%immd.js"></script>' + extra + "</body></html>"
+CLIENT_JS = "/bhg_iAMSmart/lib/ias-client.js"
+
+
+def ias_scripts(i):
+    return ('<script src="%s" data-client="immd" data-client-name="%s"></script>'
+            '<script>if(window.IASClient){IASClient.loginButton(document.getElementById("ias-login"));}</script>' % (CLIENT_JS, html.escape(g(M.UI["dept"], i))))
+
+
+def tail(extra="", i=0):
+    return '<script src="%A%immd.js"></script>' + ias_scripts(i) + extra + "</body></html>"
 
 
 def banner(title_tup, i):
@@ -222,7 +230,7 @@ def page(i, hl, cur, info, body, cls="", extra=""):
         txt += banner(dict(M.NAV)["services"] if cur.startswith("services") else (dict(M.NAV)["contact"] if cur.startswith("contact") else info["title"]), i)
         txt += crumbs(i, cur, info)
     txt += '<main id="main" class="wrap main">%s</main>' % body
-    txt += side_tabs(i, cur) + footer(i, cur) + tail(extra)
+    txt += side_tabs(i, cur) + footer(i, cur) + tail(extra, i)
     return finish(txt, cur)
 
 
@@ -309,7 +317,7 @@ def home_page(i, hl, cur, info):
             '<section class="wrap"><h2 class="sec">%s</h2><ul class="icons">%s</ul></section>'
             '<section class="wrap"><h2 class="sec">%s</h2><ul class="links">%s</ul></section>'
             % (t(M.HERO, i), t(M.HERO_SUB, i), t(dict(M.NAV)["services"], i), cards, t(dict(M.NAV)["online-services"], i), onl))
-    txt = head(i, hl, g(M.UI["dept"], i), cur, "home") + header(i, cur) + body + side_tabs(i, cur) + footer(i, cur) + tail()
+    txt = head(i, hl, g(M.UI["dept"], i), cur, "home") + header(i, cur) + body + side_tabs(i, cur) + footer(i, cur) + tail("", i)
     return finish(txt, cur)
 
 
@@ -408,13 +416,13 @@ def eservice_page(i, hl, cur, info):
         '<!doctype html><html lang="%s"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>%s | %s</title>'
         '<link rel="icon" href="%sassets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="%sassets/site.css"></head><body class="es lang-%s">'
         '<header class="es-h"><div class="es-logo"><img src="%%A%%flag.jpg" alt="" width="54" height="54"><span><strong>%s</strong><em>%s</em></span></div></header>'
-        '<div class="es-bar wrap"><span class="langs">%s</span><a href="%s">%s</a></div>'
+        '<div class="es-bar wrap"><span class="langs">%s</span><span id="ias-login"></span><a href="%s">%s</a></div>'
         '<div class="wrap"><div class="es-title">%s</div><div class="es-body%s">%s<div class="es-main">%s<div id="svc" class="svc"%s></div></div></div></div>'
         '<footer class="es-f"><div class="wrap"><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a></div></footer>'
         '<script type="application/json" id="svc-cfg">%s</script><script src="%%A%%immd.js"></script>%s<script src="%%A%%svc.js"></script></body></html>'
         % (hl, html.escape(g(info["title"], i)), html.escape(g(M.UI["dept"], i)), up, up, LANGS[i][0], U("dept", i), U("govline", i), lang_links(i, cur), rel(cur, ""), U("exit", i),
            t(info["title"], i), " has-menu" if term else "", menu, term_html, " hidden" if term else "",
-           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, es_scripts(key)))
+           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, es_scripts(key) + ias_scripts(i)))
     return finish(txt, cur)
 
 
