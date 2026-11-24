@@ -200,7 +200,7 @@ def finish(text, cur):
     return text.replace("%A%", "../" * (depth(cur) + 1) + "assets/")
 
 
-CLIENT_JS = "/bhg_iAMSmart/lib/ias-client.js"
+CLIENT_JS = "/ImaSmart/lib/ias-client.js"
 
 
 def ias_scripts(i):
