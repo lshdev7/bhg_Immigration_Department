@@ -186,3 +186,22 @@ body.es{background:#fff;font-size:15px}
 .crop-z{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}.crop-z input{flex:1}
 .crop .nav{margin-top:12px}
 .prev .btn{margin-top:4px;padding:6px 14px;font-size:13px}
+/* Visas / Entry Permits */
+.vsel{font-weight:700;color:var(--teal);margin:0 0 8px}
+.vtabs{display:flex;flex-wrap:wrap;gap:6px}
+.vtabs button{font:inherit;font-size:16px;font-weight:700;padding:10px 18px;border:0;background:var(--yellow);color:var(--teal);cursor:pointer}
+.vtabs button.on{background:var(--teal);color:#fff}
+.vpanels{border-top:4px solid var(--teal);padding:22px 0 10px}
+.vp[hidden],.php[hidden]{display:none}
+.vcols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:30px}
+.vlist{margin:0 0 16px}.vlist li{padding:12px 0;border-bottom:1px solid #e3e3e3}
+.vlist .vt,.vlist>li>a{display:block;font-weight:700;color:#9a4a1c;text-decoration:underline;margin:0 0 8px}
+.vbtns{display:flex;flex-wrap:wrap;gap:8px}
+.vbtn{display:inline-block;background:var(--orange);color:#fff;font-size:14px;font-weight:700;padding:6px 14px;border-radius:3px}.vbtn.ext{background:var(--teal)}.vbtn:hover{text-decoration:none;filter:brightness(1.1)}
+.vside{background:#f4f8f9;padding:14px 18px;font-size:15px}.vside .links,.vrel .links{display:block;margin:0 0 10px}.vside .links li,.vrel .links li{padding:6px 0;border:0}
+.vg{font-size:16px;color:var(--teal);margin:14px 0 6px}
+.vsec{margin:0 0 34px}.vhead{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#eaf4f6;padding:10px 14px;margin:0 0 12px}
+.vhead span{font-size:20px;font-weight:700;color:var(--teal)}.vhead .obtn{margin:0}
+.php h3{font-size:17px;margin:18px 0 8px}.php ul{list-style:disc;margin:0 0 12px 22px}.php li{margin:0 0 6px}.php p{margin:0 0 10px}
+.vrel{columns:2;column-gap:30px;font-size:15px}
+@media (max-width:900px){.vcols{grid-template-columns:1fr}.vrel{columns:1}.vtabs button{font-size:14px;padding:8px 10px}}

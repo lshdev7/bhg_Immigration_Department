@@ -62,6 +62,8 @@
     var kr = list.filter(function (o) { return o[0] === "KR"; });
     return [["BHG", L.bhPlace]].concat(kr, list.filter(function (o) { return o[0] !== "KR"; }));
   }
+  var EVREF = /^[A-Z]{4}-\d{7}-\d{2}\(\d\)$/;
+  function evStore(v) { try { return v === undefined ? JSON.parse(localStorage.getItem("bhg-evisa") || "{}") : localStorage.setItem("bhg-evisa", JSON.stringify(v)); } catch (e) { return v === undefined ? {} : null; } }
   function validDate(v) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     if (!m) return false;
@@ -78,6 +80,11 @@
       case "tel": if (!/^[0-9+\-\s]{8,15}$/.test(s)) return L.errTel; break;
       case "bhid": if (!bhidOK(s)) return L.errId; break;
       case "date": if (!validDate(s)) return L.errDate; break;
+      case "fdate": { var fm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s), fd = fm && new Date(+fm[1], +fm[2] - 1, +fm[3]);
+        if (!fd || fd.getMonth() !== +fm[2] - 1 || fd <= today()) return L.errFdate; break; }
+      case "anydate": { var am = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s), ad = am && new Date(+am[1], +am[2] - 1, +am[3]);
+        if (!ad || ad.getMonth() !== +am[2] - 1 || +am[1] < 1900) return L.errAnyDate; break; }
+      case "evref": if (!EVREF.test(s.toUpperCase().replace(/\s/g, ""))) return L.errEvref; break;
       case "enname": if (!/^[A-Za-z][A-Za-z '\-]*$/.test(s)) return L.errName; break;
       case "digits4": if (!/^\d{4}$/.test(s)) return L.errCode; break;
       case "pw": if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(s)) return L.errPw; break;
@@ -112,6 +119,7 @@
     if (cond.ne !== undefined) return v !== cond.ne;
     if (cond.in) return cond.in.indexOf(v) >= 0;
     if (cond.nin) return cond.nin.indexOf(v) < 0;
+    if (cond.pos) return !!v && v !== "0";
     return true;
   }
   function optLabel(f, v) {
@@ -332,6 +340,8 @@
       var ok = Object.keys(r.when).every(function (k) { return vals[k] === r.when[k]; });
       if (ok) { lines.push([r.l, r.amt]); total += r.amt; }
     });
+    var mult = C.fee.mult ? 1 + (+vals[C.fee.mult] || 0) : 1;
+    if (mult > 1) { lines = lines.map(function (r) { return [r[0] + " × " + mult, r[1] * mult]; }); total *= mult; }
     if (C.fee.amountField && vals[C.fee.amountField]) { total = Math.round(parseFloat(vals[C.fee.amountField]) * 100) / 100; lines = [[C.fee.amountLabel, total]]; }
     return { lines: lines, total: total };
   }
@@ -351,6 +361,17 @@
           out.push({ n: "a" + k + "_dob", l: L.applicant + " " + k + " – " + L.dob, t: "text", req: true, v: "date", ph: "YYYY-MM-DD", sens: true });
         }
         return out.concat(s.extra || []);
+      }
+      if (s.gen === "deps") {
+        var dn = +S.vals.deps || 0, dl = [];
+        for (var j = 1; j <= dn; j++) {
+          (cfg.depFields || []).forEach(function (t) {
+            var f = JSON.parse(JSON.stringify(t));
+            f.n = t.n.replace("{k}", j); f.l = L.dependant + " " + j + " – " + t.l; f.rl = f.l;
+            dl.push(f);
+          });
+        }
+        return dl;
       }
       return (s.fields || []).filter(function (f) { return showIf(f.showIf, S.vals); });
     }
@@ -453,6 +474,7 @@
           var v = S.vals[f.n];
           if (v === undefined || v === "" || v === false) return;
           if (f.t === "select" || f.t === "radio") v = optLabel(f, v);
+          if (f.t === "country") v = optLabel({ o: countryOptions() }, v);
           if (f.t === "checkbox") v = "✓";
           rows.push([f.rl || f.l.replace(/<[^>]+>/g, ""), String(v)]);
         });
@@ -511,7 +533,9 @@
       if (btn) { btn.disabled = true; btn.textContent = L.processing; }
       setTimeout(function () {
         var d = today();
-        S.ref = cfg.prefix + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + rnd(6);
+        S.ref = cfg.refCode ? cfg.refCode + "-" + rnd(7) + "-" + String(d.getFullYear()).slice(2) + "(" + rnd(1) + ")"
+                            : cfg.prefix + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + rnd(6);
+        if (cfg.evisa) saveEVisa(cfg, S);
         S.when = fmtNow();
         // do not keep payment secrets in memory after submission
         ["card", "cardname", "exp", "cvv", "opsno", "opspw", "pw", "pw2", "pass"].forEach(function (k) { delete S.vals[k]; });
@@ -533,6 +557,11 @@
       rows.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
       box.appendChild(dl);
       if (cfg.doneNote) box.appendChild(el("p", { cls: "hint", html: cfg.doneNote }));
+      if (cfg.evisa && window.BHGEVisaPDF) {
+        var eb = el("button", { type: "button", cls: "btn", text: L.dlEvisa });
+        eb.addEventListener("click", function () { window.BHGEVisaPDF(evStore()[S.ref]); });
+        box.appendChild(el("p", { cls: "dlp" }, [eb]));
+      }
       if (cfg.idcardPdf && window.BHGIdCardPDF && S.files.photo) {
         var ib = el("button", { type: "button", cls: "btn", text: L.dlIdcard });
         ib.addEventListener("click", function () {
@@ -553,6 +582,57 @@
       }
     }
     render();
+  }
+
+  /* ------------------------------------------------------------------ "e-Visa" records (kept in this browser) */
+  function addMonths(d, m) { var r = new Date(d.getTime()); r.setMonth(r.getMonth() + m); return r; }
+  function dmy(d) { return z(d.getDate()) + "-" + z(d.getMonth() + 1) + "-" + d.getFullYear(); }
+  function dobDmy(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? m[3] + "-" + m[2] + "-" + m[1] : ""; }
+  function saveEVisa(cfg, S) {
+    var ev = cfg.evisa, v = S.vals, now = today(), people = [];
+    function nm(sur, giv) { return (String(sur || "").toUpperCase() + ", " + String(giv || "").toUpperCase()).replace(/\s+/g, " "); }
+    people.push({ name: nm(v.surname, v.given), local: v.local || "", dob: v.dob });
+    for (var k = 1; k <= (+v.deps || 0); k++) people.push({ name: nm(v["d" + k + "_surname"], v["d" + k + "_given"]), local: "", dob: v["d" + k + "_dob"], dep: true });
+    var base = ev.mode === "ext" && v.lse ? new Date(v.lse + "T00:00:00") : now;
+    var until = ev.days ? new Date(now.getTime() + ev.days * 864e5) : addMonths(base, ev.months);
+    var fee = S.fee && S.fee.total ? S.fee.total / people.length : 0;
+    var rec = { ref: S.ref, mode: ev.mode, zh: ev.zh, en: ev.en, slip: ev.slip, months: ev.months, days: ev.days, multi: ev.multi, employ: ev.employ,
+                emp: ev.emp ? (v[ev.emp] || "") : "", issued: dmy(now), valid: dmy(addMonths(now, 3)), until: dmy(until), fee: fee, trn: S.trn || "", people: people };
+    var all = evStore(); all[S.ref] = rec; evStore(all);
+  }
+  function EVisa(cfg) {
+    var S = { vals: {}, files: {} };
+    var box = el("section", { cls: "stepbox" });
+    box.appendChild(el("h2", { text: cfg.title }));
+    box.appendChild(el("div", { cls: "intro", text: cfg.intro }));
+    var grid = el("div", { cls: "grid" });
+    cfg.fields.forEach(function (f) { grid.appendChild(buildField(f, S, function () {})); });
+    box.appendChild(grid);
+    var out = el("div", { cls: "result" });
+    var b = el("button", { type: "button", cls: "btn", text: L.search });
+    b.addEventListener("click", function () {
+      clear(out);
+      var ok = true;
+      cfg.fields.forEach(function (f) { var w = box.querySelector('[data-n="' + f.n + '"]'), m = checkField(f, S.vals[f.n], S.vals); setErr(w, m); if (m) ok = false; });
+      if (!ok) return;
+      var ref = S.vals.ref.toUpperCase().replace(/\s/g, ""), rec = evStore()[ref];
+      if (!rec || !rec.people.some(function (p) { return p.dob === S.vals.dob; })) { out.appendChild(el("p", { cls: "errbox", text: L.evNotFound })); return; }
+      var person = rec.people.filter(function (p) { return p.dob === S.vals.dob; })[0];
+      if (cfg.mode === "enquiry") {
+        var dl = el("dl", { cls: "review" });
+        [[L.evRef, rec.ref], [L.evName, person.name], [L.evType, rec.mode === "ext" ? L.evExt : L.evEntry], [L.evScheme, document.documentElement.lang.indexOf("zh") === 0 ? rec.zh : rec.en],
+         [L.evIssue, rec.issued], rec.mode === "ext" ? [L.evStay, rec.until] : [L.evValid, rec.valid], [L.evStatus, L.evOk]]
+          .forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
+        out.appendChild(dl);
+        return;
+      }
+      if (cfg.mode === "payment") out.appendChild(el("p", { cls: "ok", text: rec.fee ? L.evPaid : L.evNoFee }));
+      var d = el("button", { type: "button", cls: "btn", text: L.dlEvisa });
+      d.addEventListener("click", function () { window.BHGEVisaPDF(rec, S.vals.dob); });
+      out.appendChild(el("p", { cls: "dlp" }, [d]));
+    });
+    box.appendChild(el("div", { cls: "nav" }, [b])); box.appendChild(out);
+    root.appendChild(box);
   }
 
   /* ------------------------------------------------------------------ appointment booking */
@@ -759,6 +839,7 @@
     if (C.type === "wizard") Wizard(C);
     else if (C.type === "booking") Booking(C);
     else if (C.type === "status") Status(C);
+    else if (C.type === "evisa") EVisa(C);
     else if (C.type === "login") Login(C);
     else if (C.type === "taxcalc") TaxCalc(C);
   }

@@ -18,6 +18,7 @@ import data_immd as M        # noqa: E402
 import data_info as I        # noqa: E402
 import data_travel as T      # noqa: E402
 import data_esvc as E        # noqa: E402
+import data_visa as V        # noqa: E402
 from t2s_map import T2S, PHRASES  # noqa: E402
 
 LANGS = [("en", "en", "en", "English"), ("ko", "ko", "ko", "한국어"), ("hant", "zh-hant", "zh-Hant", "繁"), ("hans", "zh-hans", "zh-Hans", "简")]
@@ -87,7 +88,7 @@ def build_registry():
     reg("", kind="home", title=M.UI["dept"])
     reg("services", kind="services", title=dict(M.NAV)["services"], crumbs=[])
     for slug, title, _ic in M.SERVICES:
-        if slug not in ("travel-documents", "identity-cards"):
+        if slug not in ("travel-documents", "identity-cards", "visas"):
             reg("services/" + slug, kind="stub", title=title, crumbs=[("services", dict(M.NAV)["services"])])
     reg(SV, kind="cat", title=("Travel Documents", "여행증명서", "旅行證件"), crumbs=[("services", dict(M.NAV)["services"])])
     reg(SV + "/apply-passport", kind="apply", title=M.TD_PAGES[0][1], crumbs=[("services", dict(M.NAV)["services"]), (SV, ("Travel Documents", "여행증명서", "旅行證件"))])
@@ -99,11 +100,27 @@ def build_registry():
         else:
             crumbs = [("contact", dict(M.NAV)["contact"])]
         reg(path, kind="article", title=title, crumbs=crumbs)
+    svc_crumb = [("services", dict(M.NAV)["services"])]
+    vis_title = dict((x[0], x[1]) for x in M.SERVICES)["visas"]
+    reg(VS, kind="visas", title=vis_title, crumbs=svc_crumb)
+    for sc in V.SCHEMES:
+        reg(VS + "/" + sc["k"], kind="scheme", title=sc["t"], key=sc["k"], crumbs=svc_crumb + [(VS, vis_title)])
+    for slug, (title, _b) in V.ARTICLES.items():
+        reg(VS + "/info/" + slug, kind="vinfo", title=title, key=slug, crumbs=svc_crumb + [(VS, vis_title)])
+    for key, sc, ext in es_keys():
+        ttl = E.visa_service(key)["title"]
+        ESERVICES[key] = (lambda k=key: E.visa_service(k))
+        reg("eservices/" + key, kind="eservice", title=ttl, key=key)
+        reg("eservices/" + key + "/loading", kind="loading", title=ttl, key=key)
+    for key, _p, ttl, _intro in V.COMMON:
+        ESERVICES[key] = (lambda k=key: E.common_service(k))
+        reg("eservices/" + key, kind="eservice", title=ttl, key=key)
+        reg("eservices/" + key + "/loading", kind="loading", title=ttl, key=key)
     reg("online-services", kind="online", title=dict(M.NAV)["online-services"], crumbs=[])
     for slug, title in M.NAV:
         if slug not in ("services", "online-services"):
             reg(slug, kind="stub", title=title, crumbs=[])
-    for key in ESERVICES:
+    for key in [k for k in ESERVICES if k in M.ES_TITLES]:
         reg("eservices/" + key, kind="eservice", title=M.ES_TITLES[key], key=key)
         reg("eservices/" + key + "/loading", kind="loading", title=M.ES_TITLES[key], key=key)
 
@@ -262,6 +279,7 @@ def cat_page(i, cur, info):
 
 def online_page(i, cur, info):
     lis = "".join('<li><a href="%s">%s</a></li>' % (rel(cur, p), t(tt, i)) for tt, p in M.ONLINE_ITEMS)
+    lis += "".join('<li><a href="%s">%s</a></li>' % (tgt(cur, x, i), t(tt, i)) for tt, x in VISA_ONLINE)
     return '<h1>%s</h1><ul class="links">%s</ul>' % (t(info["title"], i), lis)
 
 
@@ -381,8 +399,16 @@ def eservice_page(i, hl, cur, info):
         '<script type="application/json" id="svc-cfg">%s</script><script src="%%A%%immd.js"></script>%s<script src="%%A%%svc.js"></script></body></html>'
         % (hl, html.escape(g(info["title"], i)), html.escape(g(M.UI["dept"], i)), up, up, LANGS[i][0], U("dept", i), U("govline", i), lang_links(i, cur), rel(cur, ""), U("exit", i),
            t(info["title"], i), " has-menu" if term else "", menu, term_html, " hidden" if term else "",
-           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, '<script src="%A%passport-pdf.js"></script>' + ('<script src="%A%id-pdf.js"></script>' if key == "idcard-application" else "") if key in ("passport-application", "idcard-application") else ""))
+           gov(i), U("govhk", i), gov(i, "misc/copyright"), U("copyright", i), gov(i, "misc/privacy"), U("privacy", i), gov(i, "misc/disclaimer"), U("disclaimer", i), blob, es_scripts(key)))
     return finish(txt, cur)
+
+
+def es_scripts(key):
+    if key in ("passport-application", "idcard-application"):
+        return '<script src="%A%passport-pdf.js"></script>' + ('<script src="%A%id-pdf.js"></script>' if key == "idcard-application" else "")
+    if key.startswith(("visa-", "ext-", "evisa-")):
+        return '<script src="%A%qrcode.js"></script><script src="%A%passport-pdf.js"></script><script src="%A%evisa-pdf.js"></script>'
+    return ""
 
 
 LOADING_SYS = {"passport-application": "EPASSPORT2", "travel-document-booking": "EPASSPORT2", "travel-document-status": "EPASSPORT2",
@@ -404,10 +430,164 @@ def loading_page(i, hl, cur, info):
             '<div class="loader"></div><div id="myMessage"></div></div></div>'
             '<script>(function(){var t=setTimeout(function(){location.replace("../");},1800);'
             'setTimeout(function(){var p=document.createElement("p");p.innerHTML=%s;document.getElementById("myMessage").appendChild(p);},20000);})();</script>'
-            '</body></html>' % (hl, LOADING_SYS[info["key"]], json.dumps(msg)))
+            '</body></html>' % (hl, LOADING_SYS.get(info["key"], "ESERVICES2"), json.dumps(msg)))
 
 
 # ----------------------------------------------------------------------------- main
+# ----------------------------------------------------------------------------- Visas / Entry Permits
+VS = "services/visas"
+PROC = ("It normally takes {n} weeks to process an application upon receipt of all the required documents and the relevant application fee (if applicable). The Immigration Department will not be able to start processing an application until all the required documents have been received.",
+        "필요한 서류와 해당 신청 수수료(있는 경우)를 모두 받은 뒤 처리에는 통상 {n}주가 걸립니다. 필요한 서류가 모두 접수되어야 처리를 시작할 수 있습니다.",
+        "在收到所有所需文件及有關申請費（如適用）後，處理申請一般需時{n}星期。入境事務處須待收齊所有所需文件後，才可開始處理申請。")
+FEE_TABLE = ("Fee Table", "수수료표", "收費表")
+DEP_DOCS = [V.D_DEP_PHOTO, V.D_DEP_TD, V.D_REL]
+
+
+def tgt(cur, target, i):
+    if target.startswith("gov:"):
+        return gov(i, target[4:])
+    path, _, anchor = target[5:].partition("#") if target.startswith("immd:") else (target, "", "")
+    return rel(cur, path) + ("#" + anchor if anchor else "")
+
+
+def es_keys():
+    """(e-service key, scheme, is_extension) for every visa e-service; shared GovBHG pages map to the first scheme."""
+    out, seen = [], set()
+    for s in V.SCHEMES:
+        if s["entry"] and ("e", s["entry"]) not in seen:
+            seen.add(("e", s["entry"])); out.append(("visa-" + s["k"], s, False))
+        if s["ext"] and ("x", s["ext"]) not in seen:
+            seen.add(("x", s["ext"])); out.append(("ext-" + s["k"], s, True))
+    return out
+
+
+def vblocks(blocks, i, cur):
+    out = []
+    for b in blocks:
+        k = b[0]
+        if k == "go":
+            out.append('<p><a class="obtn" href="%s">%s</a></p>' % (tgt(cur, b[2], i), t(b[1], i)))
+        elif k == "golinks":
+            out.append('<ul class="links">%s</ul>' % "".join('<li><a href="%s">%s</a></li>' % (tgt(cur, x, i), t(tt, i)) for tt, x in b[1]))
+        elif k == "schemes":
+            rows = []
+            for s in V.SCHEMES:
+                if not (s["entry"] or s["ext"]):
+                    continue
+                btns = ""
+                if s["entry"]:
+                    btns += '<a class="vbtn" href="%s">%s</a>' % (tgt(cur, V.entry_target(s), i), t(V.APPLY_ENTRY, i))
+                if s["ext"]:
+                    btns += '<a class="vbtn ext" href="%s">%s</a>' % (tgt(cur, V.ext_target(s), i), t(V.APPLY_EXT, i))
+                rows.append('<li><a href="%s">%s</a><span class="vbtns">%s</span></li>' % (rel(cur, VS + "/" + s["k"]), t(s["t"], i), btns))
+            out.append('<ul class="vlist">%s</ul>' % "".join(rows))
+        elif k == "extlist":
+            out.append('<ul class="links">%s</ul>' % "".join('<li><a href="%s">%s</a></li>' % (tgt(cur, V.ext_target(s), i), t(s["t"], i)) for _k, s, x in es_keys() if x))
+        elif k == "table":
+            out.append(render_blocks([("table", b[1], [[c for c in r] for r in b[2]])], i, cur))
+        else:
+            out.append(render_blocks([b], i, cur))
+    return "".join(out)
+
+
+def vitem(i, cur, s):
+    btns = ""
+    if s["entry"]:
+        btns += '<a class="vbtn" href="%s">%s</a>' % (tgt(cur, V.entry_target(s), i), t(V.APPLY_ENTRY if s["ext"] or s["tab"] != "visit" else V.APPLY_NOW, i))
+    if s["ext"]:
+        btns += '<a class="vbtn ext" href="%s">%s</a>' % (tgt(cur, V.ext_target(s), i), t(V.APPLY_EXT, i))
+    return '<li><a class="vt" href="%s">%s%s</a><span class="vbtns">%s</span></li>' % (
+        rel(cur, VS + "/" + s["k"]), t(s["t"], i), (" (%s)" % html.escape(s["abbr"])) if (any(c.isupper() for c in s["abbr"][1:]) and s["abbr"] not in s["t"][0]) else "", btns)
+
+
+def vgroups(i, cur):
+    out = []
+    for gt, items in V.LINK_GROUPS:
+        out.append('<h3 class="vg">%s</h3><ul class="links">%s</ul>' % (t(gt, i), "".join('<li><a href="%s">%s</a></li>' % (tgt(cur, x, i), t(tt, i)) for tt, x in items)))
+    return '<aside class="vside">%s</aside>' % "".join(out)
+
+
+def visas_page(i, cur, info):
+    btns = "".join('<button type="button" data-vtab="%s"%s>%s</button>' % (k, ' class="on"' if k == "intro" else "", t(tt, i)) for k, tt in V.TABS)
+    panels = ['<div class="vp" data-vtab="intro">%s</div>' % "".join("<p>%s</p>" % t(p, i) for p in V.INTRO)]
+    for k, _tt in V.TABS[1:]:
+        items = [V.SCHEME[x] for x in V.TAB_ITEMS[k]]
+        body = ""
+        if k == "labour":
+            body += '<ul class="vlist">%s</ul>' % "".join(vitem(i, cur, s) for s in items[:5])
+            body += '<ul class="links">%s</ul>' % "".join('<li><a href="%s">%s</a></li>' % (tgt(cur, x, i), t(tt, i)) for tt, x in V.FDH_EXTRA)
+            body += '<h3 class="vg">%s</h3><ul class="vlist">%s</ul>' % (t(("Imported Workers", "수입 노동자", "輸入勞工"), i), "".join(vitem(i, cur, s) for s in items[5:]))
+        else:
+            body += '<ul class="vlist">%s</ul>' % "".join(vitem(i, cur, s) for s in items)
+        if k == "study":
+            body += '<ul class="links"><li><a href="%s">%s</a></li></ul>' % (tgt(cur, V.COE_LINK[1], i), t(V.COE_LINK[0], i))
+        if k == "visit":
+            body += '<ul class="links"><li><a href="%s">%s</a></li></ul>' % (tgt(cur, V.INVITED_LINK[1], i), t(V.INVITED_LINK[0], i))
+        panels.append('<div class="vp" data-vtab="%s" hidden><div class="vcols"><div class="vmain">%s</div>%s</div></div>' % (k, body, vgroups(i, cur)))
+    return ('<h1>%s</h1><p class="vsel">%s</p><div class="vtabs">%s</div><div class="vpanels">%s</div>%s'
+            % (t(info["title"], i), t(("Please select:", "선택하세요:", "請選擇："), i), btns, "".join(panels), poll_rev(i)))
+
+
+def scheme_section(i, cur, s, ext):
+    sec = "ext" if ext else "entry"
+    ul = lambda xs: "<ul>%s</ul>" % "".join("<li>%s</li>" % t(x, i) for x in xs)
+    ps = lambda xs: "".join("<p>%s</p>" % t(x, i) for x in xs)
+    apply_href = tgt(cur, V.ext_target(s) if ext else V.entry_target(s), i)
+    fee = V.SPEC_FEE if s["spec"] else V.ORD_FEE
+    proc = tuple(x.replace("{n}", str(s["proc"])) for x in PROC)
+    if ext:
+        before = ps(s["ext_intro"] or s["intro"]) + ps([V.EXT_DEADLINE])
+        applying = ("<h3>%s</h3>%s" % (t(V.H["docs"], i), ul(s["ext_docs"])) + ps([V.TRANSL, V.FALSE])
+                    + "<h3>%s</h3>%s" % (t(V.H["how"], i), ps([V.APPLY_ONLINE])) + '<p><a class="obtn" href="%s">%s</a></p>' % (apply_href, t(V.APPLY_NOW, i))
+                    + "<h3>%s</h3>%s" % (t(V.H["fee"], i), ps([fee])) + '<p><a href="%s">%s</a></p>' % (rel(cur, VS + "/info/visa-fees"), t(FEE_TABLE, i)))
+        after = "<h3>%s</h3>%s<h3>%s</h3>%s" % (t(V.H["status"], i), ps([V.STATUS]), t(V.H["evisa"], i), ps([V.EVISA_P]))
+    else:
+        before = ps(s["intro"]) + ("<h3>%s</h3>%s" % (t(V.H["elig"], i), ul(s["elig"])) if s["elig"] else "") + ps([V.NORMAL])
+        before += "<h3>%s</h3>%s" % (t(V.H["proc"], i), ps([proc, V.DISCRETION]))
+        applying = "<h3>%s</h3>%s" % (t(V.H["docs"], i), ul(s["docs"]))
+        if s["deps"]:
+            applying += "<h3>%s</h3>%s" % (t(V.H["depdocs"], i), ul(DEP_DOCS))
+        applying += ps([V.TRANSL, V.FALSE])
+        applying += "<h3>%s</h3>%s" % (t(V.H["how"], i), ps([V.APPLY_ONLINE])) + '<p><a class="obtn" href="%s">%s</a></p>' % (apply_href, t(V.APPLY_NOW, i))
+        if not (s["k"] in ("pri", "prt")):
+            applying += "<h3>%s</h3>%s" % (t(V.H["fee"], i), ps([fee])) + '<p><a href="%s">%s</a></p>' % (rel(cur, VS + "/info/visa-fees"), t(FEE_TABLE, i))
+        after = "<h3>%s</h3>%s" % (t(V.H["status"], i), ps([V.STATUS]))
+        if s["evisa"]:
+            after += "<h3>%s</h3>%s" % (t(V.H["evisa"], i), ps([V.EVISA_P]))
+        after += ps(s["after"])
+        if s["deps"]:
+            after += "<h3>%s</h3>%s" % (t(V.H["dep"], i), ps([V.DEP_P]))
+        if s["ext"]:
+            after += "<h3>%s</h3>%s" % (t(V.H["stay"], i), ps([V.EXT_DEADLINE]))
+        after += "<h3>%s</h3>%s" % (t(V.H["abode"], i), ps([V.ROA if s["roa"] else V.NOROA]))
+    body = {"before": before, "applying": applying, "after": after}
+    tabs = "".join('<button type="button" data-ph="%s"%s>%s</button>' % (k, ' class="on"' if k == "before" else "", t(tt, i)) for k, tt in V.PHASES)
+    panels = "".join('<div class="php" data-ph="%s"%s><h3 class="pt">%s</h3><hr>%s</div>' % (k, "" if k == "before" else " hidden", t(s["t"], i) if not ext else t(s["t"], i) + " – " + t(V.SEC_EXT, i), body[k]) for k, _ in V.PHASES)
+    return ('<section class="vsec" id="%s"><div class="vhead"><span>%s</span><a class="obtn" href="%s">%s</a></div><div class="tabs3 ph">%s</div><div class="tpanels">%s</div></section>'
+            % (sec, t(V.SEC_EXT if ext else V.SEC_ENTRY, i), apply_href, t(V.APPLY_NOW, i), tabs, panels))
+
+
+def scheme_page(i, cur, info):
+    s = V.SCHEME[info["key"]]
+    out = '<h1 class="teal">%s</h1>' % t(s["t"], i)
+    if s["entry"] or not s["ext"]:
+        out += scheme_section(i, cur, s, False) if s["entry"] or s["elig"] else ""
+    if s["ext"]:
+        out += scheme_section(i, cur, s, True)
+    out += '<h3 class="rt"><span>%s</span></h3>%s' % (t(M.UI["related"], i), vgroups(i, cur).replace('<aside class="vside">', '<div class="vrel">').replace("</aside>", "</div>"))
+    return out + poll_rev(i)
+
+
+def vinfo_page(i, cur, info):
+    title, blocks = V.ARTICLES[info["key"]]
+    return '<h1>%s</h1><div class="art">%s</div>%s' % (t(title, i), vblocks(blocks, i, cur), poll_rev(i))
+
+
+VISA_ONLINE = [  # extra items on the Online Services page: (title, target)
+    (("Electronic Services for Visa Application", "비자 신청 전자 서비스", "簽證申請電子服務"), "immd:" + VS + "/info/evisa-online"),
+] + V.LINK_GROUPS[1][1] + V.LINK_GROUPS[2][1] + [V.LINK_GROUPS[3][1][0], V.LINK_GROUPS[3][1][3]]
+
+
 ROOT_INDEX = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Immigration Department - Baekhyeon Hwarang SAR</title>
@@ -443,7 +623,8 @@ def main():
             elif k == "loading":
                 txt = loading_page(i, hl, path, info)
             else:
-                body = {"services": services_page, "cat": cat_page, "online": online_page, "stub": stub_page, "article": article, "apply": apply_page}[k](i, path, info)
+                body = {"services": services_page, "cat": cat_page, "online": online_page, "stub": stub_page, "article": article, "apply": apply_page,
+                        "visas": visas_page, "scheme": scheme_page, "vinfo": vinfo_page}[k](i, path, info)
                 txt = page(i, hl, path, info, body.replace("%A%", ""), "inner")
             out = os.path.join(ROOT, folder, path)
             os.makedirs(out, exist_ok=True)

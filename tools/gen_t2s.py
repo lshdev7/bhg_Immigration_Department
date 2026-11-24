@@ -12,7 +12,7 @@ import opencc
 HERE = os.path.dirname(os.path.abspath(__file__))
 cc = opencc.OpenCC("t2s")
 chars = set()
-for name in ("data_immd.py", "data_travel.py", "data_info.py", "data_esvc.py", "build.py"):
+for name in ("data_immd.py", "data_travel.py", "data_info.py", "data_esvc.py", "data_visa.py", "build.py"):
     with open(os.path.join(HERE, name), encoding="utf-8") as f:
         chars |= {c for c in f.read() if "一" <= c <= "鿿"}
 m = {c: cc.convert(c) for c in sorted(chars) if cc.convert(c) != c}

@@ -166,8 +166,9 @@ def booking(kind):
     docs = {
         "td": [["passport", ("Baekhyeon Hwarang SAR Passport", "백현화랑 특별행정구 여권", "柏峴화랑特別行政區護照")], ["reentry", ("Re-entry Permit", "재입경 허가증", "回港證")], ["docid", ("Document of Identity for Visa Purposes", "비자용 신분증명서", "簽證身份書")], ["seaman", ("Seaman's Identity Book", "선원 신분증", "海員身份證")]],
         "id": [["idnew", ("Application for Baekhyeon Hwarang Smart Identity Card", "백현화랑 스마트 신분증 신청", "申領柏峴화랑智能身份證")], ["idrepl", ("Replacement of Smart Identity Card", "스마트 신분증 재발급", "換領智能身份證")], ["idcoll", ("Collection of Smart Identity Card", "스마트 신분증 수령", "領取智能身份證")]],
+        "ext": [["ext", ("Extension of stay", "체류 연장", "延期逗留")], ["chg", ("Change of employment / sponsorship", "고용·보증 변경", "轉換僱主／擔保")], ["evisa", ("Payment and collection of “e-Visa”", "\"e-Visa\" 결제 및 수령", "繳費及領取「電子簽證」")]],
     }[kind]
-    title = {"td": ("Appointment Booking for Travel Documents", "여행증명서 신청 예약", "預約申請旅行證件"),
+    title = {"ext": ("Appointment Booking for Submission of Application", "신청서 제출 예약", "預約遞交申請"), "td": ("Appointment Booking for Travel Documents", "여행증명서 신청 예약", "預約申請旅行證件"),
              "id": ("Appointment Booking for Smart Identity Card", "스마트 신분증 신청 예약", "預約申領智能身份證")}[kind]
     return {
         "type": "booking", "title": title, "offices": OFFICES,
@@ -406,3 +407,212 @@ IDCARD = {
                  "<strong>你的申請已成功遞交。</strong>請攜同確認通知到所選定的辦事處領取新身份證。"),
     "doneRows": [{"n": "surname", "l": ("Surname", "성", "姓氏")}, {"n": "given", "l": ("Given names", "이름", "名字")}, {"n": "office", "l": ("Office for collection", "수령 사무소", "領取辦事處"), "o": OFFICES}],
 }
+
+
+# ============================================================================= Visas / Entry Permits e-services (built from data_visa)
+import data_visa as V
+
+L.update({
+    "dependant": ("Dependant", "부양가족", "受養人"),
+    "dlEvisa": ("Download “e-Visa” (PDF)", "\"e-Visa\" 내려받기(PDF)", "下載「電子簽證」（PDF）"),
+    "errFdate": ("Please enter a valid future date (YYYY-MM-DD).", "오늘 이후의 올바른 날짜(YYYY-MM-DD)를 입력하세요.", "請輸入有效的未來日期（YYYY-MM-DD）。"),
+    "errAnyDate": ("Please enter a valid date (YYYY-MM-DD).", "올바른 날짜(YYYY-MM-DD)를 입력하세요.", "請輸入有效的日期（YYYY-MM-DD）。"),
+    "errEvref": ("Please enter the application reference number shown on the acknowledgement or “e-Visa” (e.g. TTEN-1234567-26(5)).", "접수 확인서나 \"e-Visa\"에 적힌 신청 접수번호를 입력하세요(예: TTEN-1234567-26(5)).", "請輸入確認通知或「電子簽證」上的申請參考編號（例如TTEN-1234567-26(5)）。"),
+    "evRef": ("Application reference number", "신청 접수번호", "申請參考編號"),
+    "evDob": ("Date of birth of the applicant (YYYY-MM-DD)", "신청인의 생년월일(YYYY-MM-DD)", "申請人的出生日期（YYYY-MM-DD）"),
+    "evNotFound": ("No “e-Visa” record matches the information entered. Please check the application reference number and the date of birth.", "입력한 정보와 일치하는 \"e-Visa\" 기록이 없습니다. 신청 접수번호와 생년월일을 확인하세요.", "找不到與所輸入資料相符的「電子簽證」紀錄。請檢查申請參考編號及出生日期。"),
+    "evName": ("Name", "성명", "姓名"), "evType": ("Type", "종류", "類別"), "evScheme": ("Scheme / arrangement", "제도·절차", "計劃／安排"),
+    "evIssue": ("Date of issue", "발급일", "簽發日期"), "evValid": ("Valid for presentation on or before", "제시 유효기한", "須於此日期或之前使用"),
+    "evStay": ("Limit of stay", "체류 기한", "逗留期限"), "evStatus": ("Status", "상태", "狀況"), "evOk": ("Valid", "유효", "有效"),
+    "evEntry": ("Notification Slip for Entry Visa / Permit", "입경 비자·허가 통지서", "入境簽證／進入許可通知書"),
+    "evExt": ("Notification Slip for Conditions of Stay", "체류 조건 통지서", "逗留條件通知書"),
+    "evPaid": ("The fee for this “e-Visa” has been paid. You may download the “e-Visa” now.", "이 \"e-Visa\"의 수수료는 이미 납부되었습니다. 지금 \"e-Visa\"를 내려받을 수 있습니다.", "此「電子簽證」的費用已經繳付。你現可下載「電子簽證」。"),
+    "evNoFee": ("No payment is required for this application.", "이 신청은 납부할 수수료가 없습니다.", "此申請無須付款。"),
+    "search": ("Search", "조회", "查詢"),
+    "months": ("months", "개월", "個月"), "days": ("days", "일", "日"),
+})
+
+_TD_TYPES = [["passport", ("Passport", "여권", "護照")], ["other", ("Other travel document", "기타 여행증명서", "其他旅行證件")]]
+_REL = [["spouse", ("Spouse / partner", "배우자·동반자", "配偶／伴侶")], ["child", ("Child under 18", "만 18세 미만 자녀", "18歲以下子女")]]
+
+
+def _personal(ext):
+    out = [
+        F("surname", ("Surname (in English)", "성(영문)", "姓氏（英文）"), req=True, v="enname", ph="CHOI", rl=("Surname", "성", "姓氏")),
+        F("given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname", ph="Yu Na", rl=("Given names", "이름", "名字")),
+        F("local", ("Name in Chinese / Korean characters (if any)", "한글·한자 성명(있는 경우)", "中文／韓文姓名（如有）")),
+        F("sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
+        F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+        F("pob", ("Place of birth (country / territory)", "출생지(국가·지역)", "出生地點（國家／地區）"), "country", req=True),
+        F("nat", ("Nationality (country / territory)", "국적(국가·지역)", "國籍（國家／地區）"), "country", req=True),
+        F("marital", ("Marital status", "혼인 여부", "婚姻狀況"), "select", req=True, o=MARITAL),
+        F("tdtype", ("Type of travel document", "여행증명서 종류", "旅行證件類別"), "select", req=True, o=_TD_TYPES),
+        F("tdno", ("Travel document number", "여행증명서 번호", "旅行證件號碼"), req=True, sens=True),
+        F("tdexp", ("Date of expiry of travel document (YYYY-MM-DD)", "여행증명서 만료일(YYYY-MM-DD)", "旅行證件屆滿日期（YYYY-MM-DD）"), req=True, v="fdate", ph="YYYY-MM-DD"),
+        F("mobile", ("Mobile phone number", "휴대전화 번호", "流動電話號碼"), "tel", req=True, v="tel", sens=True),
+        F("email", ("Email address", "이메일 주소", "電郵地址"), "email", req=True, v="email", sens=True),
+        F("addr", ("Residential address", "거주지 주소", "住址"), "textarea", req=True, full=True),
+    ]
+    return out
+
+
+def _dep_fields():
+    return [F("d{k}_surname", ("Surname (in English)", "성(영문)", "姓氏（英文）"), req=True, v="enname"),
+            F("d{k}_given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname"),
+            F("d{k}_sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
+            F("d{k}_dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+            F("d{k}_rel", ("Relationship with the applicant", "신청인과의 관계", "與申請人的關係"), "select", req=True, o=_REL),
+            F("d{k}_nat", ("Nationality", "국적", "國籍"), "country", req=True),
+            F("d{k}_tdno", ("Travel document number", "여행증명서 번호", "旅行證件號碼"), req=True, sens=True),
+            F("d{k}_photo", ("Photograph", "사진", "照片"), "file", req=True, full=True)]
+
+
+def _fee(s, ext):
+    lines = []
+    if s["spec"]:
+        lines.append({"when": {}, "l": ("Application fee", "신청 수수료", "申請費"), "amt": 600})
+        long_ = (s.get("months") or 0) > 6 or (s.get("days") or 0) > 180
+        lines.append({"when": {}, "l": ("Visa issuance fee", "비자 발급 수수료", "簽證簽發費"), "amt": 1300 if long_ else 600})
+    elif s["k"] == "apec":
+        lines.append({"when": {}, "l": ("Card fee", "카드 발급 수수료", "旅遊證費用"), "amt": 440})
+    elif s["k"] in ("pri", "prt"):
+        return None
+    else:
+        lines.append({"when": {}, "l": (("Extension of stay fee", "체류 연장 수수료", "延期逗留費") if ext else ("Visa issuance fee", "비자 발급 수수료", "簽證簽發費")), "amt": 230})
+    fee = {"base": [], "extra": lines}
+    if s["deps"]:
+        fee["mult"] = "deps"
+    return fee
+
+
+def _ref_code(s, ext):
+    letters = "".join(c for c in s["abbr"].upper() if c.isalpha())[:2] or s["k"][:2].upper()
+    return letters + ("XR" if ext else "EN")
+
+
+def visa_service(key):
+    ext = key.startswith("ext-")
+    s = V.SCHEME[key.split("-", 1)[1]]
+    title = V.GOVT["extT" if ext else "entryT"]
+    if ext and s.get("fdhsub"):
+        title = V.GOVT["fdhExtT"]
+    title = tuple(x.replace("{s}", y) for x, y in zip(title, s["t"]))
+    if not ext and s["entry"] in V.GOV_TITLE:
+        title = V.GOV_TITLE[s["entry"]]
+    docs = s["ext_docs"] if ext else s["docs"]
+    intro_p = (s["ext_intro"] or s["intro"]) if ext else s["intro"]
+    lis = lambda i: "".join("<li>%s</li>" % d[i] for d in docs)
+    notes = tuple("<p>%s</p><p><strong>%s</strong></p><ul>%s</ul><p>%s</p>" % (intro_p[0][i], V.H["docs"][i], lis(i), V.GOVT["fmtP"][i]) for i in range(3))
+    info = [F("where", ("Where are you now?", "현재 위치", "你現時身在何處？"), "radio", req=True, o=[["in", ("In Baekhyeon Hwarang", "백현화랑 안", "在柏峴화랑")], ["out", ("Outside Baekhyeon Hwarang", "백현화랑 밖", "在柏峴화랑以外地區")]])]
+    if ext:
+        info = [F("idno", ("Baekhyeon Hwarang identity card number", "백현화랑 신분증 번호", "柏峴화랑身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
+                F("lse", ("Expiry date of current limit of stay (YYYY-MM-DD)", "현재 체류 기한 만료일(YYYY-MM-DD)", "現時逗留期限屆滿日期（YYYY-MM-DD）"), req=True, v="fdate", ph="YYYY-MM-DD")]
+    if s["deps"]:
+        info.append(F("deps", ("Number of accompanying dependants applying together (group submission)", "함께 신청하는 동반 부양가족 수(그룹 제출)", "一併申請的隨行受養人數目（以組別方式遞交）"), "select", req=True, o=[[str(n), str(n)] for n in range(0, 9)], h=("Maximum nine applications in each group (including the principal applicant).", "그룹당 주 신청인을 포함해 최대 9건입니다.", "每組最多九宗申請（包括主申請人）。")))
+    uploads = [F("photo", V.D_PHOTO, "photo", req=True, full=True)]
+    n = 0
+    for d in docs:
+        if d is V.D_PHOTO:
+            continue
+        n += 1
+        uploads.append(F("doc%d" % n, d, "file", req=V.mandatory(d), full=True))
+    steps = [
+        {"title": ("Important Notes", "유의사항", "注意事項"), "intro": notes,
+         "fields": [F("agree", ("I have read and understood the above notes and prepared the required documents.", "위 유의사항을 읽고 이해했으며 필요한 서류를 준비했습니다.", "我已閱讀並明白上述注意事項，並已準備所需文件。"), "checkbox", req=True, full=True)]},
+        {"title": ("Application Information", "신청 정보", "申請資料"), "fields": info},
+        {"title": ("Personal Particulars of Applicant", "신청인 인적사항", "申請人個人資料"), "fields": _personal(ext)},
+    ]
+    if s["fields"]:
+        steps.append({"title": (("Details of Application", "신청 세부 사항", "申請詳情")), "fields": s["fields"]})
+    if s["deps"]:
+        steps.append({"title": ("Particulars of Accompanying Dependants", "동반 부양가족 인적사항", "隨行受養人資料"), "gen": "deps", "showIf": {"n": "deps", "pos": True}, "fields": []})
+    steps.append({"title": ("Upload Documents", "서류 업로드", "上載文件"), "intro": (V.GOVT["fmtP"][0], V.GOVT["fmtP"][1], V.GOVT["fmtP"][2]), "fields": uploads})
+    steps.append({"title": ("Confirmation, Declaration and Submission", "확인·선서·제출", "確認、聲明及遞交"), "type": "review"})
+    fee = _fee(s, ext)
+    if fee:
+        steps.append({"title": ("Online Payment", "온라인 결제", "網上付款"), "type": "pay"})
+    steps.append({"title": ("Acknowledgement", "접수 확인", "確認"), "type": "done"})
+    emp = None
+    for f in s["fields"]:
+        if f["n"] in ("employer", "school", "trainer", "emname", "bizname", "company", "sname"):
+            emp = f["n"]
+            break
+    cfg = {
+        "type": "wizard", "prefix": "EV", "refCode": _ref_code(s, ext), "title": title, "steps": steps, "depFields": _dep_fields(),
+        "declare": F("declare", ("I declare that the information given in this application, including that of my accompanying dependants, is true, complete and correct, and that I understand that making false statements to an immigration officer is an offence.", "이 신청서(동반 부양가족 정보 포함)에 기재한 정보가 사실이고 완전하며 정확함을 선서하며, 출입경 공무원에게 허위 진술을 하는 것이 범죄임을 이해합니다.", "本人聲明本申請（包括隨行受養人的資料）所填報的資料全部屬實、完整及正確，並明白向入境事務主任作出虛假陳述即屬違法。"), "checkbox", req=True),
+        "pay": PASSPORT["pay"],
+        "doneText": ("<strong>Your application has been submitted and approved.</strong> The “e-Visa” has been issued. Please download and keep it, and present it with your valid travel document upon arrival clearance.",
+                     "<strong>신청이 제출되어 승인되었습니다.</strong> \"e-Visa\"가 발급되었습니다. 내려받아 보관하고, 입경 심사 때 유효한 여행증명서와 함께 제시하세요.",
+                     "<strong>你的申請已遞交並獲批准。</strong>「電子簽證」已經發出。請下載並妥為保存，並在辦理入境檢查時連同有效旅行證件一併出示。") if s["evisa"] else
+                    ("<strong>Your application has been submitted successfully.</strong> You will be notified of the result by email.", "<strong>신청이 정상적으로 제출되었습니다.</strong> 결과는 이메일로 알려 드립니다.", "<strong>你的申請已成功遞交。</strong>本處會以電郵通知你申請結果。"),
+        "doneNote": ("You may re-download the “e-Visa” at any time through the Download “e-Visa” service with the application reference number and your date of birth.", "신청 접수번호와 생년월일로 \"e-Visa\" 내려받기 서비스에서 언제든 \"e-Visa\"를 다시 받을 수 있습니다.", "你可隨時憑申請參考編號及出生日期，透過「下載電子簽證」服務重新下載「電子簽證」。") if s["evisa"] else None,
+        "doneRows": [{"n": "surname", "l": ("Surname", "성", "姓氏")}, {"n": "given", "l": ("Given names", "이름", "名字")}],
+    }
+    if fee:
+        cfg["fee"] = fee
+    if s["evisa"]:
+        cfg["evisa"] = {"mode": "ext" if ext else "entry", "zh": s["t"][2], "en": s["t"][0], "slip": list(s["slip"]), "months": s.get("months") or 0,
+                        "days": s.get("days") or 0, "multi": s["multi"], "emp": emp, "employ": s["slip"][1] in ("EMPLOYMENT", "IMPORTED LABOUR", "FOREIGN DOMESTIC HELPER", "TECHNICAL PROFESSIONALS STREAM")}
+    return cfg
+
+
+def _lookup(mode, title):
+    return {"type": "evisa", "mode": mode, "title": title,
+            "intro": ("Please enter the application reference number and the date of birth of the applicant.", "신청 접수번호와 신청인의 생년월일을 입력하세요.", "請輸入申請參考編號及申請人的出生日期。"),
+            "fields": [F("ref", ("Application reference number", "신청 접수번호", "申請參考編號"), req=True, v="evref", ph="TTEN-1234567-26(5)"),
+                       F("dob", ("Date of birth of the applicant (YYYY-MM-DD)", "신청인의 생년월일(YYYY-MM-DD)", "申請人的出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD")]}
+
+
+def _simple(title, fields, done, fee=None, prefix="VS"):
+    steps = [{"title": ("Application Details", "신청 내용", "申請資料"), "fields": fields},
+             {"title": ("Confirmation and Declaration", "확인 및 선서", "確認及聲明"), "type": "review"}]
+    if fee:
+        steps.append({"title": ("Online Payment", "온라인 결제", "網上付款"), "type": "pay"})
+    steps.append({"title": ("Acknowledgement", "접수 확인", "確認"), "type": "done"})
+    cfg = {"type": "wizard", "prefix": prefix, "title": title, "steps": steps, "pay": PASSPORT["pay"], "doneText": done,
+           "declare": F("declare", ("I declare that the information given is true and correct.", "기재한 정보가 사실이며 정확함을 선서합니다.", "本人聲明所填報的資料全部屬實及正確。"), "checkbox", req=True),
+           "doneRows": []}
+    if fee:
+        cfg["fee"] = {"base": [], "extra": [fee]}
+    return cfg
+
+
+_DONE = ("<strong>Your submission has been received.</strong> The Immigration Department will process it and contact you if necessary.", "<strong>제출이 접수되었습니다.</strong> 출입경사무처가 처리하고 필요하면 연락드립니다.", "<strong>本處已收到你的遞交。</strong>入境事務處會進行處理，並在有需要時與你聯絡。")
+_ID = F("idno", ("Baekhyeon Hwarang identity card number", "백현화랑 신분증 번호", "柏峴화랑身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True)
+
+
+def common_service(key):
+    title = [c[2] for c in V.COMMON if c[0] == key][0]
+    if key in ("evisa-payment", "evisa-download", "evisa-enquiry"):
+        return _lookup(key.split("-")[1], title)
+    if key == "extension-booking":
+        b = booking("ext")
+        b["title"] = title
+        return b
+    if key == "supplementary-documents":
+        return _simple(title, [F("ref", ("Application reference number", "신청 접수번호", "申請參考編號"), req=True, v="evref", ph="TTEN-1234567-26(5)"),
+                               F("dob", ("Date of birth of the applicant (YYYY-MM-DD)", "신청인의 생년월일(YYYY-MM-DD)", "申請人的出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+                               F("letter", ("Reference number on the notification letter", "통지서 번호", "通知信上的參考編號"), req=True),
+                               F("s1", ("Supplementary document 1", "추가 서류 1", "補充文件1"), "file", req=True, full=True),
+                               F("s2", ("Supplementary document 2 (optional)", "추가 서류 2(선택)", "補充文件2（可選）"), "file", full=True),
+                               F("s3", ("Supplementary document 3 (optional)", "추가 서류 3(선택)", "補充文件3（可選）"), "file", full=True)], _DONE, prefix="SD")
+    if key == "change-sponsorship":
+        return _simple(title, [_ID, F("ctype", ("Type of change", "변경 종류", "轉換類別"), "radio", req=True, o=[["emp", ("Change of employment", "고용 변경", "轉換僱主")], ["inv", ("Change of investment", "투자 변경", "更改投資")], ["edu", ("Change of educational institution", "교육기관 변경", "轉換教育院校")]]),
+                               F("neworg", ("Name of new employer / business / institution", "새 고용주·사업체·교육기관 이름", "新僱主／業務／院校名稱"), req=True, full=True),
+                               F("post", ("Post / programme", "직위·과정", "職位／課程"), req=True), F("salary", ("Monthly salary (BH$)", "월 급여(BH$)", "每月薪金（柏峴화랑元）"), v="num", im="numeric", req=True, showIf={"n": "ctype", "eq": "emp"}),
+                               F("cstart", ("Intended commencement date (YYYY-MM-DD)", "시작 예정일(YYYY-MM-DD)", "預計開始日期（YYYY-MM-DD）"), req=True, v="anydate", ph="YYYY-MM-DD"),
+                               F("cdoc", ("Employment contract / admission letter / business proof", "고용계약서·입학허가서·사업 증빙", "僱傭合約／取錄通知書／業務證明"), "file", req=True, full=True)], _DONE,
+                       fee={"when": {}, "l": ("Change of condition of stay fee", "체류 조건 변경 수수료", "更改逗留條件費"), "amt": 230}, prefix="CS")
+    if key == "fdh-termination":
+        return _simple(title, [F("by", ("Notification made by", "통보자", "通知人"), "radio", req=True, o=[["employer", ("Employer", "고용주", "僱主")], ["helper", ("Foreign domestic helper", "외국인 가사도우미", "外籍家庭傭工")]]),
+                               F("emname", ("Name of employer", "고용주 성명", "僱主姓名"), req=True), F("emid", ("Employer’s identity card number", "고용주 신분증 번호", "僱主身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
+                               F("hname", ("Name of helper", "가사도우미 성명", "傭工姓名"), req=True), F("hid", ("Helper’s identity card number", "가사도우미 신분증 번호", "傭工身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
+                               F("tdate", ("Date of termination (YYYY-MM-DD)", "해지일(YYYY-MM-DD)", "終止日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+                               F("reason", ("Reason for termination", "해지 사유", "終止原因"), "textarea", req=True, full=True)], _DONE, prefix="FT")
+    if key == "id407g":
+        return _simple(title, [F("emname", ("Name of employer", "고용주 성명", "僱主姓名"), req=True), F("emid", ("Employer’s identity card number", "고용주 신분증 번호", "僱主身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
+                               F("hname", ("Name of helper", "가사도우미 성명", "傭工姓名"), req=True), F("flat", ("Size of flat (square metres)", "주택 면적(㎡)", "住所面積（平方米）"), req=True, v="num", im="numeric"),
+                               F("room", ("Accommodation arrangement for the helper", "가사도우미 숙소 형태", "為傭工提供的住宿安排"), "select", req=True, o=[["own", ("Separate room", "독립된 방", "獨立房間")], ["share", ("Sharing a room with a child", "아동과 방 공유", "與兒童同房")], ["other", ("Other arrangement", "기타", "其他安排")]]),
+                               F("duties", ("Revised domestic duties", "변경된 가사 업무", "經修訂的家務"), "textarea", req=True, full=True),
+                               F("g", ("Signed revised Schedule (ID 407G)", "서명한 변경 명세서(ID 407G)", "已簽署的經修訂安排表（ID 407G）"), "file", req=True, full=True)], _DONE, prefix="AG")
+    raise KeyError(key)

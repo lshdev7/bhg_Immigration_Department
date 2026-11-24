@@ -34,6 +34,24 @@
     });
   });
 
+  /* Visas / Entry Permits: category tabs (deep-linkable as #tab_xxx) and Before / Applying / After tabs */
+  var vb = $$("[data-vtab]").filter(function (b) { return b.tagName === "BUTTON"; });
+  function vshow(k) {
+    vb.forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-vtab") === k); });
+    $$(".vp").forEach(function (p) { p.hidden = p.getAttribute("data-vtab") !== k; });
+  }
+  vb.forEach(function (b) { b.addEventListener("click", function () { vshow(b.getAttribute("data-vtab")); try { history.replaceState(null, "", "#tab_" + b.getAttribute("data-vtab")); } catch (e) {} }); });
+  if (vb.length) { var hm = /^#tab_(\w+)/.exec(location.hash); if (hm && vb.some(function (b) { return b.getAttribute("data-vtab") === hm[1]; })) vshow(hm[1]); }
+  $$(".vsec").forEach(function (sec) {
+    var bs = $$("[data-ph]", sec).filter(function (b) { return b.tagName === "BUTTON"; });
+    bs.forEach(function (b) {
+      b.addEventListener("click", function () {
+        bs.forEach(function (x) { x.classList.toggle("on", x === b); });
+        $$(".php", sec).forEach(function (p) { p.hidden = p.getAttribute("data-ph") !== b.getAttribute("data-ph"); });
+      });
+    });
+  });
+
   /* e-service start page */
   var start = $("#start");
   if (start) {
