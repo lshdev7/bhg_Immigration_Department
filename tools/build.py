@@ -278,9 +278,24 @@ def cat_page(i, cur, info):
 
 
 def online_page(i, cur, info):
-    lis = "".join('<li><a href="%s">%s</a></li>' % (rel(cur, p), t(tt, i)) for tt, p in M.ONLINE_ITEMS)
-    lis += "".join('<li><a href="%s">%s</a></li>' % (tgt(cur, x, i), t(tt, i)) for tt, x in VISA_ONLINE)
-    return '<h1>%s</h1><ul class="links">%s</ul>' % (t(info["title"], i), lis)
+    """Online Services grouped by category, as on the Immigration Department website."""
+    O = M.ONLINE_ITEMS
+    vis = [(tt, "immd:" + VS + "#tab_" + k) for k, tt in V.TABS]
+    vis[0] = (V.TABS[0][1], "immd:" + VS)
+    groups = [
+        (("Online Enquiry Form", "온라인 문의 양식", "網上查詢表格"), [(M.UI["enq_form"], "immd:contact")]),
+        (dict((x[0], x[1]) for x in M.SERVICES)["visas"], vis),
+        (dict((x[0], x[1]) for x in M.SERVICES)["right-of-abode"], [(O[5][0], "immd:" + O[5][1])]),
+        (dict((x[0], x[1]) for x in M.SERVICES)["travel-documents"], [(O[0][0], "immd:" + O[0][1]), (O[1][0], "immd:" + O[1][1]), (O[4][0], "immd:" + O[4][1])]),
+        (dict((x[0], x[1]) for x in M.SERVICES)["identity-cards"], [(O[2][0], "immd:" + O[2][1]), (O[3][0], "immd:" + O[3][1])]),
+        (("Visa Related Electronic Services", "비자 관련 전자 서비스", "簽證相關電子服務"), VISA_ONLINE),
+        (("Other Online Services", "기타 온라인 서비스", "其他網上服務"), [(V.SCHEME["prt"]["t"], "immd:" + VS + "/prt"), (V.SCHEME["pri"]["t"], "immd:" + VS + "/pri")]),
+    ]
+    rows = ""
+    for gt, items in groups:
+        rows += '<tr><th class="og">%s</th></tr>' % t(gt, i)
+        rows += "".join('<tr><td><a href="%s">%s</a></td></tr>' % (tgt(cur, x, i), t(tt, i)) for tt, x in items)
+    return '<h1>%s</h1><div class="tblw"><table class="dt onl"><tbody>%s</tbody></table></div>' % (t(info["title"], i), rows)
 
 
 def stub_page(i, cur, info):
