@@ -44,10 +44,10 @@
   function titleCase(s) { return (s || "").toLowerCase().replace(/(^|[\s\-'])([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); }); }
 
   function build(v) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.dob || "") || [0, 2000, 1, 1], dob = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.dob || "") || [0, 2000, 1, 1], dob = new Date(+m[1], +m[2] - 1, +m[3]), now = v.issued ? new Date(v.issued) : new Date();
     var age = ageOn(dob, now), first = v.idtype === "first";
     var fr = first ? z(now.getMonth() + 1) + "-" + String(now.getFullYear()).slice(2) : (v.firstreg || "").replace(/\s/g, "");
-    var no = first ? newNumber() : String(v.oldid || "").toUpperCase().replace(/\s/g, "").replace(/^([A-Z]{1,2}\d{6})\(?([0-9A])\)?$/, "$1($2)");
+    var no = v.idno ? String(v.idno) : first ? newNumber() : String(v.oldid || "").toUpperCase().replace(/\s/g, "").replace(/^([A-Z]{1,2}\d{6})\(?([0-9A])\)?$/, "$1($2)");
     return {
       permanent: v.status === "A", status: v.status, age: age, no: no, window: no.replace(/\(.*$/, ""),
       local: v.local || "", en: (v.surname || "").toUpperCase() + ", " + titleCase(v.given),
@@ -154,6 +154,11 @@
     round(x); return c;
   }
 
+  /* front and back as canvases (used by the iAM Smart app to show the issued card) */
+  window.BHGIdCardImages = function (vals, photoFile) {
+    var d = build(vals || {}), u = URL.createObjectURL(photoFile);
+    return Promise.all([load(u), load(BASE + "flag.jpg")]).then(function (im) { URL.revokeObjectURL(u); return { no: d.no, sym: d.sym, front: front(d, im[0]), back: back(d, im[1]) }; });
+  };
   window.BHGIdCardPDF = function (vals, photoFile) {
     var d = build(vals || {}), u = URL.createObjectURL(photoFile);
     return Promise.all([load(u), load(BASE + "flag.jpg")]).then(function (im) {

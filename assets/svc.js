@@ -618,6 +618,7 @@
     var rec = { ref: S.ref, mode: ev.mode, zh: ev.zh, en: ev.en, slip: ev.slip, months: ev.months, days: ev.days, multi: ev.multi, employ: ev.employ,
                 emp: ev.emp ? (v[ev.emp] || "") : "", issued: dmy(now), valid: dmy(addMonths(now, 3)), until: dmy(until), fee: fee, trn: S.trn || "", people: people };
     var all = evStore(); all[S.ref] = rec; evStore(all);
+    REC().then(function (r) { if (r) return r.saveEvisa(rec); }).catch(function () { /* kept locally */ });
   }
   function EVisa(cfg) {
     var S = { vals: {}, files: {} };
@@ -634,7 +635,9 @@
       var ok = true;
       cfg.fields.forEach(function (f) { var w = box.querySelector('[data-n="' + f.n + '"]'), m = checkField(f, S.vals[f.n], S.vals); setErr(w, m); if (m) ok = false; });
       if (!ok) return;
-      var ref = S.vals.ref.toUpperCase().replace(/\s/g, ""), rec = evStore()[ref];
+      var ref = S.vals.ref.toUpperCase().replace(/\s/g, "");
+      REC().then(function (r) { return r ? r.getEvisa(ref, S.vals.dob) : null; }).catch(function () { return null; }).then(function (rec) {
+      rec = rec || evStore()[ref];
       if (!rec || !rec.people.some(function (p) { return p.dob === S.vals.dob; })) { out.appendChild(el("p", { cls: "errbox", text: L.evNotFound })); return; }
       var person = rec.people.filter(function (p) { return p.dob === S.vals.dob; })[0];
       if (cfg.mode === "enquiry") {
@@ -649,9 +652,16 @@
       var d = el("button", { type: "button", cls: "btn", text: L.dlEvisa });
       d.addEventListener("click", function () { window.BHGEVisaPDF(rec, S.vals.dob); });
       out.appendChild(el("p", { cls: "dlp" }, [d]));
+      });
     });
     box.appendChild(el("div", { cls: "nav" }, [b])); box.appendChild(out);
     root.appendChild(box);
+  }
+
+  /* records kept in the iAM Smart database (Supabase); null when the client is not available */
+  function REC() {
+    if (!window.IASClient) return Promise.resolve(null);
+    return window.IASClient.ready.then(function () { return window.IAS && window.IAS.records ? window.IAS.records : null; }).catch(function () { return null; });
   }
 
   /* ------------------------------------------------------------------ appointment booking */
@@ -674,10 +684,13 @@
         prefix: "AP", doneText: cfg.doneText, doneNote: cfg.doneNote, steps: cfg.steps, declare: null, pay: null,
         doneRows: [{ n: "office", l: L.office, o: C.offices }, { n: "date", l: L.date }, { n: "time", l: L.time }],
         onDone: function (S) {
-          var all = store(), off = S.vals.office;
+          var off = S.vals.office, ref = S.ref, code = S.vals.code;
           C.offices.forEach(function (o) { if (o[0] === off) off = o[1]; });
-          all[S.ref] = { office: off, date: S.vals.date, time: S.vals.time, code: S.vals.code };
-          store(all);
+          var data = { office: off, date: S.vals.date, time: S.vals.time };
+          REC().then(function (r) {
+            if (r) return r.saveBooking(ref, code, data);
+            var all = store(); data.code = code; all[ref] = data; store(all);
+          });
           delete S.vals.code; delete S.vals.code2;
         }
       }, w);
@@ -697,14 +710,24 @@
         var ok = true;
         [f1, f2].forEach(function (f) { var w = wrap.querySelector('[data-n="' + f.n + '"]'), m = checkField(f, S.vals[f.n], S.vals); setErr(w, m); if (m) ok = false; });
         if (!ok) return;
-        var all = store(), bk = all[S.vals.ref];
-        if (!bk || bk.code !== S.vals.code) { out.appendChild(el("p", { cls: "errbox", text: L.notFound })); return; }
-        var dl = el("dl", { cls: "review" });
-        [[L.office, bk.office], [L.date, bk.date], [L.time, bk.time]].forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
-        out.appendChild(dl);
-        var cb = el("button", { type: "button", cls: "btn sec", text: L.cancelAppt });
-        cb.addEventListener("click", function () { delete all[S.vals.ref]; store(all); clear(out); out.appendChild(el("p", { cls: "ok", text: L.cancelled })); });
-        out.appendChild(cb);
+        var ref = S.vals.ref.toUpperCase().replace(/\s/g, ""), code = S.vals.code;
+        REC().then(function (r) {
+          if (r) return r.findBooking(ref, code);
+          var bk0 = store()[ref]; return bk0 && bk0.code === code ? bk0 : null;
+        }).then(function (bk) {
+          if (!bk) { out.appendChild(el("p", { cls: "errbox", text: L.notFound })); return; }
+          var dl = el("dl", { cls: "review" });
+          [[L.office, bk.office], [L.date, bk.date], [L.time, bk.time]].forEach(function (x) { dl.appendChild(el("dt", { text: x[0] })); dl.appendChild(el("dd", { text: x[1] })); });
+          out.appendChild(dl);
+          var cb = el("button", { type: "button", cls: "btn sec", text: L.cancelAppt });
+          cb.addEventListener("click", function () {
+            REC().then(function (r) {
+              if (r) return r.cancelBooking(ref, code);
+              var all = store(); delete all[ref]; store(all); return true;
+            }).then(function () { clear(out); out.appendChild(el("p", { cls: "ok", text: L.cancelled })); });
+          });
+          out.appendChild(cb);
+        });
       });
       wrap.appendChild(el("div", { cls: "nav" }, [b])); wrap.appendChild(out);
       panel.appendChild(wrap);
