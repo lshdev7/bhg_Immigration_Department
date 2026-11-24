@@ -57,7 +57,6 @@ L = {
                  "拖動照片以移動位置，並以滑桿（或滑鼠滾輪）縮放，使面部位於橢圓輔助線內。照片會以40毫米 x 50毫米（1280 x 1600像素）儲存。"),
     "zoom": ("Zoom", "확대", "縮放"), "rotate": ("Rotate 90°", "90° 회전", "旋轉90°"),
     "cropApply": ("Use this photograph", "이 사진 사용", "使用此照片"), "cropCancel": ("Cancel", "취소", "取消"), "cropAgain": ("Adjust again", "다시 맞추기", "重新調整"),
-    "errCropSmall": ("The selected area is too small for a clear photograph. Please zoom out or choose a larger image.", "선택한 영역의 해상도가 너무 낮습니다. 축소하거나 더 큰 사진을 선택하세요.", "所選範圍的解像度太低，請縮小或選擇較大的照片。"),
     "generating": ("Generating PDF…", "PDF 만드는 중…", "正在產生PDF…"),
 }
 
