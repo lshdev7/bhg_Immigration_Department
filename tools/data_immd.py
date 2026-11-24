@@ -70,11 +70,11 @@ TD_PAGES = [  # path under services/travel-documents/, title
 ]
 
 ONLINE_ITEMS = [  # (title, e-service path)
-    (("Online Application for Baekhyeon Hwarang SAR Passport", "백현화랑 특별행정구 여권 온라인 신청", "網上申請柏峴화랑特別行政區護照"), "eservices/passport-application"),
-    (("Online Appointment Booking for Travel Documents", "여행증명서 신청 온라인 예약", "網上預約申請旅行證件"), "eservices/travel-document-booking"),
-    (("Online Appointment Booking for Smart Identity Card", "스마트 신분증 신청 온라인 예약", "網上預約申領智能身份證"), "eservices/idcard-booking"),
-    (("Online Travel Document Application Status Enquiry", "여행증명서 신청 현황 온라인 조회", "網上查詢旅行證件申請進度"), "eservices/travel-document-status"),
-    (("Online Application Status Enquiry (Visas / Entry Permits, Right of Abode)", "신청 현황 온라인 조회(비자·입경허가, 거주권)", "網上查詢申請進度（簽證／進入許可證、居留權）"), "eservices/application-status"),
+    (("Online Application for Baekhyeon Hwarang SAR Passport", "백현화랑 특별행정구 여권 온라인 신청", "網上申請柏峴화랑特別行政區護照"), "eservices/passport-application/loading"),
+    (("Online Appointment Booking for Travel Documents", "여행증명서 신청 온라인 예약", "網上預約申請旅行證件"), "eservices/travel-document-booking/loading"),
+    (("Online Appointment Booking for Smart Identity Card", "스마트 신분증 신청 온라인 예약", "網上預約申領智能身份證"), "eservices/idcard-booking/loading"),
+    (("Online Travel Document Application Status Enquiry", "여행증명서 신청 현황 온라인 조회", "網上查詢旅行證件申請進度"), "eservices/travel-document-status/loading"),
+    (("Online Application Status Enquiry (Visas / Entry Permits, Right of Abode)", "신청 현황 온라인 조회(비자·입경허가, 거주권)", "網上查詢申請進度（簽證／進入許可證、居留權）"), "eservices/application-status/loading"),
 ]
 
 # ----------------------------------------------------------------------------- e-service start page (term)

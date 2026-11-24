@@ -73,7 +73,7 @@ ARTICLES = {
     "contact/branch-offices": (I.BRANCH_TITLE, I.BRANCH), "contact/hq-offices": (I.HQ_TITLE, I.HQ),
 }
 BLOCK_TARGET = {
-    "idbook": "eservices/idcard-booking", "apply": "eservices/passport-application", "appointment": "eservices/travel-document-booking",
+    "idbook": "eservices/idcard-booking/loading", "apply": "eservices/passport-application/loading", "appointment": "eservices/travel-document-booking/loading",
     "photo": SV + "/photo", "fees": SV + "/fees", "faq": SV + "/faq",
 }
 ESERVICES = {
@@ -105,6 +105,7 @@ def build_registry():
             reg(slug, kind="stub", title=title, crumbs=[])
     for key in ESERVICES:
         reg("eservices/" + key, kind="eservice", title=M.ES_TITLES[key], key=key)
+        reg("eservices/" + key + "/loading", kind="loading", title=M.ES_TITLES[key], key=key)
 
 
 # ----------------------------------------------------------------------------- icons
@@ -304,7 +305,7 @@ def tab_sections(i, cur, place):
                    % (t(tb["title"], i), t(T.GB_SEC["forms"], i), forms, docs, t(T.GB_SEC["means"], i), "<thead><tr>%s</tr></thead>" % th, "<tbody>%s</tbody>" % tr, t(note, i)))
     out["applying"] = (
         '<details open><summary>%s</summary><div><p>%s</p><p><a class="obtn" href="%s">%s</a> <a class="obtn alt" href="%s">%s</a></p></div></details>'
-        % (t(M.AP_SECT["apply"], i), t(M.AP_APPLY_NOTE, i), rel(cur, "eservices/passport-application"), t(M.AP_BTN_APPLY, i), rel(cur, "eservices/travel-document-booking"), t(M.AP_BTN_BOOK, i))
+        % (t(M.AP_SECT["apply"], i), t(M.AP_APPLY_NOTE, i), rel(cur, "eservices/passport-application/loading"), t(M.AP_BTN_APPLY, i), rel(cur, "eservices/travel-document-booking/loading"), t(M.AP_BTN_BOOK, i))
         + "".join(sub)
         + '<details><summary>%s</summary><div><p><a href="%s">%s</a></p></div></details><details><summary>%s</summary><div><p><a href="%s">%s</a></p></div></details>'
         % (t(M.AP_SECT["photo"], i), rel(cur, SV + "/photo"), t(I.PHOTO_TITLE, i), t(M.AP_SECT["fees"], i), rel(cur, SV + "/fees"), t(I.FEES_TITLE, i)))
@@ -312,7 +313,7 @@ def tab_sections(i, cur, place):
     out["after"] = (
         '<details><summary>%s</summary><div>%s</div></details>' % (t(M.AP_SECT["collect"], i), col)
         + ('<details><summary>%s</summary><div><p><a href="%s">%s</a></p></div></details>' % (t(M.AP_SECT["kiosk"], i), rel(cur, SV + "/kiosk"), t(I.KIOSK_TITLE, i)) if place == "in" else "")
-        + '<details><summary>%s</summary><div><p><a class="obtn" href="%s">%s</a></p></div></details>' % (t(M.AP_SECT["status"], i), rel(cur, "eservices/travel-document-status"), t(M.AP_BTN_STATUS, i))
+        + '<details><summary>%s</summary><div><p><a class="obtn" href="%s">%s</a></p></div></details>' % (t(M.AP_SECT["status"], i), rel(cur, "eservices/travel-document-status/loading"), t(M.AP_BTN_STATUS, i))
         + '<details><summary>%s</summary><div><p><a href="%s">%s</a></p></div></details>' % (t(M.AP_SECT["lost"], i), gov(i, "residents/immigration/traveldoc/lost"), t(I.LOST_TITLE, i)))
     return out
 
@@ -382,6 +383,28 @@ def eservice_page(i, hl, cur, info):
     return finish(txt, cur)
 
 
+LOADING_SYS = {"passport-application": "EPASSPORT2", "travel-document-booking": "EPASSPORT2", "travel-document-status": "EPASSPORT2",
+               "idcard-booking": "SMARTICS2", "application-status": "EVISA2"}
+
+
+def loading_page(i, hl, cur, info):
+    """Same behaviour as the Immigration Department's QueueIt.html: a bare spinner page that forwards to the
+    e-service, with a manual link if the browser has not moved on after 20 seconds."""
+    msg = g(("If you are not redirected, please click <a href='../'>here</a>...", "자동으로 이동하지 않으면 <a href='../'>여기</a>를 누르세요...",
+             "如未能自動轉往，請按<a href='../'>此處</a>..."), i)
+    return ('<!doctype html><html lang="%s"><head><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="ie=edge">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="cache-control" content="no-cache"><title>%s</title>'
+            '<noscript><meta http-equiv="refresh" content="2;url=../"></noscript>'
+            '<style>body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#fff}.loader{border:5px solid #f3f3f3;border-radius:50%%;border-top:5px solid #3498db;'
+            'width:50px;height:50px;animation:spin 2s linear infinite}@keyframes spin{0%%{transform:rotate(0deg)}100%%{transform:rotate(360deg)}}'
+            '.container{height:200px;position:relative}.center{margin:0;position:absolute;top:50%%;left:50%%;transform:translate(-50%%,-50%%);text-align:center}'
+            '#myMessage{font-size:14px;margin-top:14px;white-space:nowrap}</style></head><body><h2></h2><p></p><div class="container"><div class="center">'
+            '<div class="loader"></div><div id="myMessage"></div></div></div>'
+            '<script>(function(){var t=setTimeout(function(){location.replace("../");},1800);'
+            'setTimeout(function(){var p=document.createElement("p");p.innerHTML=%s;document.getElementById("myMessage").appendChild(p);},20000);})();</script>'
+            '</body></html>' % (hl, LOADING_SYS[info["key"]], json.dumps(msg)))
+
+
 # ----------------------------------------------------------------------------- main
 ROOT_INDEX = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -415,6 +438,8 @@ def main():
                 txt = home_page(i, hl, path, info)
             elif k == "eservice":
                 txt = eservice_page(i, hl, path, info)
+            elif k == "loading":
+                txt = loading_page(i, hl, path, info)
             else:
                 body = {"services": services_page, "cat": cat_page, "online": online_page, "stub": stub_page, "article": article, "apply": apply_page}[k](i, path, info)
                 txt = page(i, hl, path, info, body.replace("%A%", ""), "inner")
