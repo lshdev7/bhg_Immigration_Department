@@ -428,6 +428,18 @@ L.update({
     "evExt": ("Notification Slip for Conditions of Stay", "체류 조건 통지서", "逗留條件通知書"),
     "evPaid": ("The fee for this “e-Visa” has been paid. You may download the “e-Visa” now.", "이 \"e-Visa\"의 수수료는 이미 납부되었습니다. 지금 \"e-Visa\"를 내려받을 수 있습니다.", "此「電子簽證」的費用已經繳付。你現可下載「電子簽證」。"),
     "evNoFee": ("No payment is required for this application.", "이 신청은 납부할 수수료가 없습니다.", "此申請無須付款。"),
+    "evPar": ("Notification Slip for Pre-arrival Registration", "사전 입경 등록 통지서", "預辦入境登記通知書"),
+    "evFdh2": ("Foreign Domestic Helper – Notification Slip for Extension of Stay and Entry Visa", "외국인 가사도우미 – 체류 연장 및 입경 비자 통지서", "外籍家庭傭工 – 延期逗留及入境簽證通知書"),
+    "evExpired": ("Expired", "기한 만료", "已過期"), "evRe": ("Re-entry employment till", "재입경 후 취업 기한", "再入境僱傭工作至"), "evEmp": ("Employer / institution", "고용주·기관", "僱主／院校"),
+    "evMake": ("The “e-Visa” is being prepared…", "\"e-Visa\"를 만드는 중입니다…", "正在準備「電子簽證」……"),
+    "evMakeErr": ("The “e-Visa” could not be prepared. Please try again later.", "\"e-Visa\"를 만들지 못했습니다. 잠시 후 다시 시도하세요.", "未能準備「電子簽證」。請稍後再試。"),
+    "evM1": ("Scan the QR code", "QR 코드 스캔", "掃描二維碼"), "evM2": ("Import the “e-Visa” file", "\"e-Visa\" 파일 불러오기", "匯入「電子簽證」檔案"), "evM3": ("Input the “e-Visa” information", "\"e-Visa\" 정보 입력", "輸入「電子簽證」資料"),
+    "evM1p": ("Point the camera at the encrypted QR code on the “e-Visa”.", "\"e-Visa\"에 있는 암호화된 QR 코드를 카메라에 비추세요.", "請把鏡頭對準「電子簽證」上的加密二維碼。"),
+    "evM2p": ("Choose the “e-Visa” file (PDF, JPEG, GIF or PNG).", "\"e-Visa\" 파일(PDF, JPEG, GIF, PNG)을 선택하세요.", "請選擇「電子簽證」檔案（PDF、JPEG、GIF或PNG格式）。"),
+    "evCamOn": ("Start the camera", "카메라 켜기", "開啟鏡頭"), "evCamErr": ("The camera cannot be used. Please import the “e-Visa” file or input the information.", "카메라를 사용할 수 없습니다. 파일을 불러오거나 정보를 입력하세요.", "未能使用鏡頭。請匯入「電子簽證」檔案或輸入資料。"),
+    "evQrNone": ("No QR code was found in the file.", "파일에서 QR 코드를 찾지 못했습니다.", "在檔案中找不到二維碼。"),
+    "evQrBad": ("This QR code was not issued by the Immigration Department.", "출입경사무처가 발급한 QR 코드가 아닙니다.", "此二維碼並非由入境事務處發出。"),
+    "evQrOk": ("The QR code is authentic. The “e-Visa” was issued by the Immigration Department.", "진본 QR 코드입니다. 출입경사무처가 발급한 \"e-Visa\"입니다.", "二維碼核實無誤，此「電子簽證」由入境事務處發出。"),
     "search": ("Search", "조회", "查詢"),
     "months": ("months", "개월", "個月"), "days": ("days", "일", "日"),
 })
@@ -551,7 +563,7 @@ def visa_service(key):
     if fee:
         cfg["fee"] = fee
     if s["evisa"]:
-        cfg["evisa"] = {"mode": "ext" if ext else "entry", "zh": s["t"][2], "en": s["t"][0], "slip": list(s["slip"]), "months": s.get("months") or 0,
+        cfg["evisa"] = {"k": s["k"], "mode": "ext" if ext else "entry", "zh": s["t"][2], "en": s["t"][0], "slip": list(s["slip"]), "months": s.get("months") or 0,
                         "days": s.get("days") or 0, "multi": s["multi"], "emp": emp, "employ": s["slip"][1] in ("EMPLOYMENT", "IMPORTED LABOUR", "FOREIGN DOMESTIC HELPER", "TECHNICAL PROFESSIONALS STREAM")}
     return cfg
 

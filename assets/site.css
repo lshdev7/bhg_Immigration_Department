@@ -209,3 +209,4 @@ body.es{background:#fff;font-size:15px}
 
 /* iAM Smart */
 .tools #ias-login{margin-right:6px}.tools .ias-btn{font-size:13px;padding:4px 10px}.es-bar #ias-login{margin-left:auto;margin-right:12px}.iasfill{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px}
+.qrcam{display:block;width:100%;max-width:520px;border-radius:8px;background:#000;margin:10px 0}.qrcam[hidden]{display:none}

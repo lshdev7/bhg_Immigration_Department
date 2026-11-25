@@ -62,7 +62,7 @@
     var kr = list.filter(function (o) { return o[0] === "KR"; });
     return [["BHG", L.bhPlace]].concat(kr, list.filter(function (o) { return o[0] !== "KR"; }));
   }
-  var EVREF = /^[A-Z]{4}-\d{7}-\d{2}\(\d\)$/;
+  var EVREF = /^[A-Z]{4}-\d{7}-\d{2}\([0-9A-F]\)$/;
   function evStore(v) { try { return v === undefined ? JSON.parse(localStorage.getItem("bhg-evisa") || "{}") : localStorage.setItem("bhg-evisa", JSON.stringify(v)); } catch (e) { return v === undefined ? {} : null; } }
   /* Dates are typed and shown as YYYYMMDD (8 digits, no hyphens); S.vals keeps YYYY-MM-DD. */
   var DATE_V = { date: 1, fdate: 1, anydate: 1, age11: 1 };
@@ -579,7 +579,7 @@
       if (btn) { btn.disabled = true; btn.textContent = L.processing; }
       setTimeout(function () {
         var d = today();
-        S.ref = cfg.refCode ? cfg.refCode + "-" + rnd(7) + "-" + String(d.getFullYear()).slice(2) + "(" + rnd(1) + ")"
+        S.ref = cfg.refCode ? newEvRef(cfg.refCode)
                             : cfg.prefix + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + rnd(6);
         if (cfg.evisa) saveEVisa(cfg, S);
         S.when = fmtNow();
@@ -599,13 +599,14 @@
         var v = S.vals[r.n];
         if (v) rows.push([r.l, r.o ? optLabel({ o: r.o }, v) : v]);
       });
+      (S.evisas || []).slice(1).forEach(function (x) { rows.push([L.refNo + " – " + x.people[0].name, x.ref]); });
       var dl = el("dl", { cls: "review" });
       rows.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
       box.appendChild(dl);
       if (cfg.doneNote) box.appendChild(el("p", { cls: "hint", html: cfg.doneNote }));
       if (cfg.evisa && window.BHGEVisaPDF) {
         var eb = el("button", { type: "button", cls: "btn", text: L.dlEvisa });
-        eb.addEventListener("click", function () { window.BHGEVisaPDF(evStore()[S.ref]); });
+        eb.addEventListener("click", function () { evMake(eb, function () { return S.evSaved.then(function (r) { return window.BHGEVisaPDF(S.evisas, null, r); }); }); });
         box.appendChild(el("p", { cls: "dlp" }, [eb]));
       }
       if (cfg.idcardPdf && window.BHGIdCardPDF && S.files.photo) {
@@ -633,19 +634,37 @@
   /* ------------------------------------------------------------------ "e-Visa" records (kept in this browser) */
   function addMonths(d, m) { var r = new Date(d.getTime()); r.setMonth(r.getMonth() + m); return r; }
   function dmy(d) { return z(d.getDate()) + "-" + z(d.getMonth() + 1) + "-" + d.getFullYear(); }
+  function newEvRef(code) {   // AAAA-NNNNNNN-YY(C)
+    var a = new Uint8Array(8), s = ""; crypto.getRandomValues(a);
+    for (var i = 0; i < 7; i++) s += a[i] % 10;
+    return code + "-" + s + "-" + String(today().getFullYear()).slice(2) + "(" + "0123456789ABCDEF".charAt(a[7] % 16) + ")";
+  }
+  function evMake(btn, fn) {   // PDF with a signed QR code
+    var p = btn.parentNode.querySelector(".errbox"); if (p) p.remove();
+    var t = btn.textContent; btn.disabled = true; btn.textContent = L.evMake;
+    Promise.resolve().then(fn).then(function () { btn.disabled = false; btn.textContent = t; }, function () { btn.disabled = false; btn.textContent = t; btn.parentNode.appendChild(el("p", { cls: "errbox", text: L.evMakeErr })); });
+  }
   function dobDmy(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? m[3] + "-" + m[2] + "-" + m[1] : ""; }
   function saveEVisa(cfg, S) {
     var ev = cfg.evisa, v = S.vals, now = today(), people = [];
     function nm(sur, giv) { return (String(sur || "").toUpperCase() + ", " + String(giv || "").toUpperCase()).replace(/\s+/g, " "); }
-    people.push({ name: nm(v.surname, v.given), local: v.local || "", dob: v.dob });
-    for (var k = 1; k <= (+v.deps || 0); k++) people.push({ name: nm(v["d" + k + "_surname"], v["d" + k + "_given"]), local: "", dob: v["d" + k + "_dob"], dep: true });
+    people.push({ name: nm(v.surname, v.given), local: v.local || "", dob: v.dob, nat: v.nat || "", td: v.tdtype || "" });
+    for (var k = 1; k <= (+v.deps || 0); k++) people.push({ name: nm(v["d" + k + "_surname"], v["d" + k + "_given"]), local: "", dob: v["d" + k + "_dob"], nat: v["d" + k + "_nat"] || "", td: "passport", dep: true });
     var base = ev.mode === "ext" && v.lse ? new Date(v.lse + "T00:00:00") : now;
-    var until = ev.days ? new Date(now.getTime() + ev.days * 864e5) : addMonths(base, ev.months);
+    var fdh2 = ev.mode === "ext" && (ev.k === "fdhrenew" || ev.k === "fdhchange");   // extension now, re-entry until the end of the contract
+    var months = ev.k === "study" && +v.smonths ? Math.min(+v.smonths, 72) : ev.k === "train" && +v.tmonths ? +v.tmonths : ev.months;
+    var until = ev.days ? new Date(now.getTime() + ev.days * 864e5) : addMonths(base, fdh2 ? 12 : months);
     var fee = S.fee && S.fee.total ? S.fee.total / people.length : 0;
-    var rec = { ref: S.ref, mode: ev.mode, zh: ev.zh, en: ev.en, slip: ev.slip, months: ev.months, days: ev.days, multi: ev.multi, employ: ev.employ,
+    var rec = { ref: S.ref, k: ev.k, mode: ev.mode, zh: ev.zh, en: ev.en, slip: ev.slip, months: months, days: ev.days, multi: ev.multi, employ: ev.employ,
                 emp: ev.emp ? (v[ev.emp] || "") : "", issued: dmy(now), valid: dmy(addMonths(now, 3)), until: dmy(until), fee: fee, trn: S.trn || "", people: people };
-    var all = evStore(); all[S.ref] = rec; evStore(all);
-    REC().then(function (r) { if (r) return r.saveEvisa(rec); }).catch(function () { /* kept locally */ });
+    if (fdh2) { rec.from = dmy(base); rec.reuntil = dmy(addMonths(base, 24)); }
+    if (v.cno) rec.cno = String(v.cno).toUpperCase();
+    if (v.vessel) rec.vessel = v.vessel;
+    // every person has an e-Visa and a reference number of his/her own
+    S.evisas = people.map(function (p, i) { var x = {}; Object.keys(rec).forEach(function (q) { x[q] = rec[q]; }); x.people = [p]; if (i) x.ref = newEvRef(cfg.refCode); return x; });
+    var all = evStore(); S.evisas.forEach(function (x) { all[x.ref] = x; }); evStore(all);
+    S.evSaved = REC().then(function (r) { if (!r) return null; return Promise.all(S.evisas.map(function (x) { return r.saveEvisa(x); })).then(function () { return r; }); });
+    S.evSaved.catch(function () { /* kept locally; reported when the PDF is made */ });
   }
   function EVisa(cfg) {
     var S = { vals: {}, files: {} };
@@ -668,21 +687,108 @@
       if (!rec || !rec.people.some(function (p) { return p.dob === S.vals.dob; })) { out.appendChild(el("p", { cls: "errbox", text: L.evNotFound })); return; }
       var person = rec.people.filter(function (p) { return p.dob === S.vals.dob; })[0];
       if (cfg.mode === "enquiry") {
-        var dl = el("dl", { cls: "review" });
-        [[L.evRef, rec.ref], [L.evName, person.name], [L.evType, rec.mode === "ext" ? L.evExt : L.evEntry], [L.evScheme, document.documentElement.lang.indexOf("zh") === 0 ? rec.zh : rec.en],
-         [L.evIssue, rec.issued], rec.mode === "ext" ? [L.evStay, rec.until] : [L.evValid, rec.valid], [L.evStatus, L.evOk]]
-          .forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
-        out.appendChild(dl);
+        out.appendChild(evRows(rec, person));
         return;
       }
       if (cfg.mode === "payment") out.appendChild(el("p", { cls: "ok", text: rec.fee ? L.evPaid : L.evNoFee }));
       var d = el("button", { type: "button", cls: "btn", text: L.dlEvisa });
-      d.addEventListener("click", function () { window.BHGEVisaPDF(rec, S.vals.dob); });
+      d.addEventListener("click", function () { evMake(d, function () { return REC().then(function (r) { return window.BHGEVisaPDF(rec, S.vals.dob, r); }); }); });
       out.appendChild(el("p", { cls: "dlp" }, [d]));
       });
     });
     box.appendChild(el("div", { cls: "nav" }, [b])); box.appendChild(out);
-    root.appendChild(box);
+    if (cfg.mode !== "enquiry") { root.appendChild(box); return; }
+    // three methods: scan, import, input
+    var tabs = el("div", { cls: "tabsw" }), panel = el("div"), stop = null;
+    var M = [[L.evM1, scanPanel], [L.evM2, filePanel], [L.evM3, function () { panel.appendChild(box); }]];
+    var bs = M.map(function (m, i) { var t = el("button", { type: "button", cls: "tb", text: m[0] }); t.addEventListener("click", function () { show(i); }); tabs.appendChild(t); return t; });
+    function show(i) { if (stop) { stop(); stop = null; } bs.forEach(function (t, k) { t.classList.toggle("on", k === i); }); clear(panel); M[i][1](); }
+    root.appendChild(tabs); root.appendChild(panel); show(2);
+    function verify(text, res) {
+      clear(res);
+      if (!/^BHGIM\.EVIS\./.test(text)) { res.appendChild(el("p", { cls: "errbox", text: L.evQrBad })); return; }
+      REC().then(function (r) { if (!r) throw new Error("records"); return r.verifyEvisa(text); }).then(function (v) {
+        clear(res);
+        if (!v || !v.valid) { res.appendChild(el("p", { cls: "errbox", text: L.evQrBad })); return; }
+        res.appendChild(el("p", { cls: "ok", text: L.evQrOk }));
+        v.rec.people.forEach(function (p) { res.appendChild(evRows(v.rec, p)); });
+      }).catch(function () { clear(res); res.appendChild(el("p", { cls: "errbox", text: L.evMakeErr })); });
+    }
+    function scanPanel() {
+      var sb = el("section", { cls: "stepbox" }, [el("h2", { text: L.evM1 }), el("div", { cls: "intro", text: L.evM1p })]), v = el("video", { cls: "qrcam" }), res = el("div", { cls: "result" });
+      v.setAttribute("playsinline", ""); v.muted = true; v.hidden = true;
+      var on = el("button", { type: "button", cls: "btn", text: L.evCamOn });
+      sb.appendChild(v); sb.appendChild(el("div", { cls: "nav" }, [on])); sb.appendChild(res); panel.appendChild(sb);
+      on.addEventListener("click", function () {
+        clear(res); on.disabled = true;
+        var dead = false, st = null;
+        var mine = stop = function () { dead = true; if (st) st.getTracks().forEach(function (t) { t.stop(); }); v.hidden = true; on.disabled = false; };
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { mine(); res.appendChild(el("p", { cls: "errbox", text: L.evCamErr })); return; }
+        Promise.all([jsqr(), navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false })]).then(function (x) {
+          st = x[1]; if (dead) { mine(); return; }
+          v.srcObject = st; v.hidden = false; return v.play().then(function () {
+            var c = document.createElement("canvas");
+            (function tick() {
+              if (dead) return;
+              if (v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; c.getContext("2d").drawImage(v, 0, 0); var t = qrIn(c, true); if (t) { mine(); verify(t, res); return; } }
+              setTimeout(tick, 200);
+            })();
+          });
+        }).catch(function () { if (dead) return; mine(); clear(res); res.appendChild(el("p", { cls: "errbox", text: L.evCamErr })); });
+      });
+    }
+    function filePanel() {
+      var sb = el("section", { cls: "stepbox" }, [el("h2", { text: L.evM2 }), el("div", { cls: "intro", text: L.evM2p })]), inp = el("input", { type: "file", accept: "application/pdf,image/jpeg,image/gif,image/png" }), res = el("div", { cls: "result" });
+      sb.appendChild(inp); sb.appendChild(res); panel.appendChild(sb);
+      inp.addEventListener("change", function () {
+        var f = inp.files && inp.files[0]; clear(res); if (!f) return;
+        res.appendChild(el("p", { cls: "hint", text: "…" }));
+        Promise.all([jsqr(), evImages(f)]).then(function (x) {
+          var found = x[1].map(function (c) { return qrIn(c); }).filter(Boolean);
+          clear(res);
+          if (!found.length) { res.appendChild(el("p", { cls: "errbox", text: L.evQrNone })); return; }
+          found.forEach(function (t) { var one = el("div"); res.appendChild(one); verify(t, one); });
+        }).catch(function () { clear(res); res.appendChild(el("p", { cls: "errbox", text: L.evQrNone })); });
+      });
+    }
+  }
+  function evRows(rec, person) {
+    var dl = el("dl", { cls: "review" }), form = window.BHGEVisaForm ? window.BHGEVisaForm(rec, person) : rec.mode;
+    var m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(rec.reuntil || rec.until || ""), over = m && new Date(+m[3], +m[2] - 1, +m[1]) < today();
+    var rows = [[L.evRef, rec.ref], [L.evName, person.name + (person.local ? " " + person.local : "")], [L.dob.replace(/\s*[(（]YYYYMMDD[)）]/, ""), dobDmy(person.dob)],
+      [L.evType, { ext: L.evExt, fdh2: L.evFdh2, pri: L.evPar, prt: L.evPar }[form] || L.evEntry], [L.evScheme, document.documentElement.lang.indexOf("zh") === 0 ? rec.zh : rec.en], [L.evIssue, rec.issued]];
+    if (rec.emp && !person.dep) rows.push([L.evEmp, rec.emp]);
+    rows.push(rec.mode === "ext" ? [L.evStay, rec.until] : [L.evValid, rec.valid]);
+    if (rec.reuntil) rows.push([L.evRe, rec.reuntil]);
+    rows.push([L.evStatus, over ? L.evExpired : L.evOk]);
+    rows.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
+    return dl;
+  }
+  var SVC_BASE = (function () { var s = document.currentScript && document.currentScript.src; return s ? s.replace(/[^\/]*$/, "") : "../../assets/"; })(), jsqrP = null;
+  function jsqr() {
+    if (!jsqrP) jsqrP = new Promise(function (ok, bad) { if (window.jsQR) return ok(); var s = document.createElement("script"); s.src = SVC_BASE + "jsqr.js"; s.onload = ok; s.onerror = function () { jsqrP = null; bad(); }; document.head.appendChild(s); });
+    return jsqrP;
+  }
+  /* QR code text in a canvas: the whole picture first, then the place of the code on the slip at several sizes */
+  function qrIn(c, quick) {
+    function tryAt(sx, sy, sw, sh, w) {
+      var k = document.createElement("canvas"), x; k.width = Math.round(w); k.height = Math.round(w * sh / sw); x = k.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, k.width, k.height); x.drawImage(c, sx, sy, sw, sh, 0, 0, k.width, k.height);
+      var d = x.getImageData(0, 0, k.width, k.height), r = window.jsQR(d.data, k.width, k.height, { inversionAttempts: "dontInvert" });
+      return r && r.data || null;
+    }
+    var W = c.width, H = c.height, t = tryAt(0, 0, W, H, Math.min(W, 1200));
+    if (t || quick) return t;
+    [[.66, .13, .34, .24], [.5, 0, .5, .5]].some(function (b) { return [480, 720, 960, 1300].some(function (w) { t = tryAt(W * b[0], H * b[1], W * b[2], H * b[3], w); return t; }); });
+    return t || (W > 1200 ? tryAt(0, 0, W, H, Math.min(W, 2600)) : null);
+  }
+  function evImages(f) {   // pictures of the pages: the file itself, or the JPEG pages inside a PDF
+    function one(blob) { return new Promise(function (ok, bad) { var u = URL.createObjectURL(blob), im = new Image(); im.onload = function () { var c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext("2d").drawImage(im, 0, 0); URL.revokeObjectURL(u); ok(c); }; im.onerror = bad; im.src = u; }); }
+    if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) return one(f).then(function (c) { return [c]; });
+    return f.arrayBuffer().then(function (buf) {
+      var b = new Uint8Array(buf), s = new TextDecoder("latin1").decode(b), jobs = [], re = /\/DCTDecode[\s\S]{0,300}?stream\r?\n/g, m;
+      while ((m = re.exec(s))) { var st = m.index + m[0].length, e = s.indexOf("endstream", st); if (e > 0) { jobs.push(one(new Blob([b.slice(st, e)], { type: "image/jpeg" })).catch(function () { return null; })); re.lastIndex = e; } }
+      return Promise.all(jobs).then(function (l) { return l.filter(Boolean); });
+    });
   }
 
   /* records kept in the iAM Smart database (Supabase); null when the client is not available */

@@ -320,6 +320,7 @@ FDH_DOCS = [D_PHOTO, D_TD, ("Standard Employment Contract (ID 407) signed by the
 FDH_FIELDS = [F("emname", ("Name of employer", "고용주 성명", "僱主姓名"), req=True), F("emid", ("Employer’s identity card number", "고용주 신분증 번호", "僱主身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
               F("emaddr", ("Address of employment", "근무지 주소", "工作地址"), "textarea", req=True, full=True),
               F("wage", ("Monthly wage (BH$)", "월 임금(BH$)", "每月工資（柏峴화랑元）"), req=True, v="num", im="numeric", ph="5100"),
+              F("cno", ("Domestic helper (D.H.) contract number", "가사도우미 고용계약 번호", "家庭傭工僱傭合約號碼"), req=True, ph="C123456"),
               F("cstart", ("Contract commencement date (YYYYMMDD)", "계약 시작일(YYYYMMDD)", "合約開始日期（YYYYMMDD）"), req=True, v="anydate", ph="YYYYMMDD")]
 S(k="fdh", tab="labour", abbr="FDH", deps=False, roa=False, multi=False, months=24, slip=("外籍家庭傭工", "FOREIGN DOMESTIC HELPER"),
   t=("Entry Visa for New Foreign Domestic Helper", "신규 외국인 가사도우미 입경 비자", "新聘外籍家庭傭工入境簽證"), entry_loc="np", entry="entryvisafornewfdh",
@@ -363,7 +364,7 @@ for _k, _abbr, _t, _e, _x in [
             ("the wage and terms of employment are not less favourable than those specified for the quota.", "임금과 고용 조건이 정원에 정해진 것보다 불리하지 않을 것", "工資及僱用條件不遜於配額所訂明者。")],
       docs=[D_PHOTO, D_TD, ("Quota approval letter / approval-in-principle", "정원 승인서·원칙적 승인서", "配額批准信／原則上批准信"), D_CONTRACT, ("Proof of relevant skills and working experience", "관련 기술 및 경력 증빙", "相關技能及工作經驗證明")],
       ext_docs=[D_LAST_TD, D_IDX, D_EMP_PROOF],
-      fields=[F("quota", ("Quota / approval reference number", "정원·승인 번호", "配額／批准編號"), req=True), F_EMPLOYER, F_POST, F_SALARY])
+      fields=[F("quota", ("Quota / approval reference number", "정원·승인 번호", "配額／批准編號"), req=True), F_EMPLOYER, F("cno", ("Employment contract number", "고용계약 번호", "僱傭合約號碼"), req=True), F_POST, F_SALARY])
 
 # ============================================================================= Investment / Training / Other Employment
 S(k="ncies", tab="invest", abbr="New CIES", spec=True, months=24, slip=("新資本投資者入境計劃", "NEW CAPITAL INVESTMENT ENTRANT SCHEME"),
