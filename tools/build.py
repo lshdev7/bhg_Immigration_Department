@@ -430,7 +430,7 @@ def es_scripts(key):
     if key in ("passport-application", "idcard-application"):
         return '<script src="%A%passport-pdf.js"></script>' + ('<script src="%A%id-pdf.js"></script>' if key == "idcard-application" else "")
     if key.startswith(("visa-", "ext-", "evisa-")):
-        return '<script src="%A%qrcode.js"></script><script src="%A%passport-pdf.js"></script><script src="%A%evisa-pdf.js"></script>'
+        return '<script src="%A%qrcode.js"></script><script src="%A%passport-pdf.js"></script><script src="%A%evisa-pdf.js"></script><script src="%A%evisa-read.js"></script>'
     return ""
 
 

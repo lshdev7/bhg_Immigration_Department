@@ -104,7 +104,8 @@
       }
       case "cvv": if (!/^\d{3,4}$/.test(s)) return L.errCvv; break;
       case "num": if (!/^\d+(\.\d+)?$/.test(s)) return L.errNum; break;
-      case "mmyy": { var mm = /^(\d{2})-(\d{2})$/.exec(s); if (!mm || +mm[1] < 1 || +mm[1] > 12) return L.errMMYY; break; }
+      case "mmyy": {   // typed as MMYY, kept as MM-YY
+         var mm = /^(\d{2})-(\d{2})$/.exec(s); if (!mm || +mm[1] < 1 || +mm[1] > 12) return L.errMMYY; break; }
       case "age11": {
         if (!validDate(s)) return L.errAge11;
         var b = new Date(s + "T00:00:00"), n = today(), a = n.getFullYear() - b.getFullYear();
@@ -273,7 +274,10 @@
         return buildSlot(f, S, wrap, onChange);
       } else {
         ctl = el("input", { type: f.t === "password" ? "password" : (f.t === "date" ? "text" : (f.t || "text")), id: id, placeholder: f.ph || "", autocomplete: "off", inputmode: f.im || null, maxlength: f.max || null });
-        if (isDate(f)) {
+        if (f.v === "mmyy") {
+          ctl.setAttribute("inputmode", "numeric"); ctl.value = String(v || "").replace(/\D/g, "");
+          ctl.addEventListener("input", function () { var d = ctl.value.replace(/\D/g, "").slice(0, 4); if (ctl.value !== d) ctl.value = d; S.vals[f.n] = d.length === 4 ? d.slice(0, 2) + "-" + d.slice(2) : d; });
+        } else if (isDate(f)) {
           ctl.setAttribute("inputmode", "numeric"); ctl.value = dateShow(v);
           ctl.addEventListener("input", function () {
             var d = ctl.value.replace(/\D/g, "").slice(0, 8);
@@ -522,6 +526,7 @@
           if (f.t === "country") v = optLabel({ o: countryOptions() }, v);
           if (f.t === "checkbox") v = "✓";
           if (isDate(f)) v = dateShow(v);
+          if (f.v === "mmyy") v = String(v).replace("-", "");
           rows.push([f.rl || f.l.replace(/<[^>]+>/g, ""), String(v)]);
         });
         if (!rows.length) return;
@@ -690,6 +695,7 @@
         out.appendChild(evRows(rec, person));
         return;
       }
+      if (window.BHGEVisaExpired(rec)) { out.appendChild(el("p", { cls: "errbox", text: L.evOver })); return; }   // not shown after the validity or the limit of stay
       if (cfg.mode === "payment") out.appendChild(el("p", { cls: "ok", text: rec.fee ? L.evPaid : L.evNoFee }));
       var d = el("button", { type: "button", cls: "btn", text: L.dlEvisa });
       d.addEventListener("click", function () { evMake(d, function () { return REC().then(function (r) { return window.BHGEVisaPDF(rec, S.vals.dob, r); }); }); });
@@ -724,13 +730,13 @@
         var dead = false, st = null;
         var mine = stop = function () { dead = true; if (st) st.getTracks().forEach(function (t) { t.stop(); }); v.hidden = true; on.disabled = false; };
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { mine(); res.appendChild(el("p", { cls: "errbox", text: L.evCamErr })); return; }
-        Promise.all([jsqr(), navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false })]).then(function (x) {
+        Promise.all([window.BHGEVisaRead.ready(), navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false })]).then(function (x) {
           st = x[1]; if (dead) { mine(); return; }
           v.srcObject = st; v.hidden = false; return v.play().then(function () {
             var c = document.createElement("canvas");
             (function tick() {
               if (dead) return;
-              if (v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; c.getContext("2d").drawImage(v, 0, 0); var t = qrIn(c, true); if (t) { mine(); verify(t, res); return; } }
+              if (v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; c.getContext("2d").drawImage(v, 0, 0); var t = window.BHGEVisaRead.canvas(c, true); if (t) { mine(); verify(t, res); return; } }
               setTimeout(tick, 200);
             })();
           });
@@ -743,8 +749,7 @@
       inp.addEventListener("change", function () {
         var f = inp.files && inp.files[0]; clear(res); if (!f) return;
         res.appendChild(el("p", { cls: "hint", text: "…" }));
-        Promise.all([jsqr(), evImages(f)]).then(function (x) {
-          var found = x[1].map(function (c) { return qrIn(c); }).filter(Boolean);
+        window.BHGEVisaRead.file(f).then(function (found) {
           clear(res);
           if (!found.length) { res.appendChild(el("p", { cls: "errbox", text: L.evQrNone })); return; }
           found.forEach(function (t) { var one = el("div"); res.appendChild(one); verify(t, one); });
@@ -754,7 +759,7 @@
   }
   function evRows(rec, person) {
     var dl = el("dl", { cls: "review" }), form = window.BHGEVisaForm ? window.BHGEVisaForm(rec, person) : rec.mode;
-    var m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(rec.reuntil || rec.until || ""), over = m && new Date(+m[3], +m[2] - 1, +m[1]) < today();
+    var over = window.BHGEVisaExpired ? window.BHGEVisaExpired(rec) : false;
     var rows = [[L.evRef, rec.ref], [L.evName, person.name + (person.local ? " " + person.local : "")], [L.dob.replace(/\s*[(（]YYYYMMDD[)）]/, ""), dobDmy(person.dob)],
       [L.evType, { ext: L.evExt, fdh2: L.evFdh2, pri: L.evPar, prt: L.evPar }[form] || L.evEntry], [L.evScheme, document.documentElement.lang.indexOf("zh") === 0 ? rec.zh : rec.en], [L.evIssue, rec.issued]];
     if (rec.emp && !person.dep) rows.push([L.evEmp, rec.emp]);
@@ -764,33 +769,6 @@
     rows.forEach(function (r) { dl.appendChild(el("dt", { text: r[0] })); dl.appendChild(el("dd", { text: r[1] })); });
     return dl;
   }
-  var SVC_BASE = (function () { var s = document.currentScript && document.currentScript.src; return s ? s.replace(/[^\/]*$/, "") : "../../assets/"; })(), jsqrP = null;
-  function jsqr() {
-    if (!jsqrP) jsqrP = new Promise(function (ok, bad) { if (window.jsQR) return ok(); var s = document.createElement("script"); s.src = SVC_BASE + "jsqr.js"; s.onload = ok; s.onerror = function () { jsqrP = null; bad(); }; document.head.appendChild(s); });
-    return jsqrP;
-  }
-  /* QR code text in a canvas: the whole picture first, then the place of the code on the slip at several sizes */
-  function qrIn(c, quick) {
-    function tryAt(sx, sy, sw, sh, w) {
-      var k = document.createElement("canvas"), x; k.width = Math.round(w); k.height = Math.round(w * sh / sw); x = k.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, k.width, k.height); x.drawImage(c, sx, sy, sw, sh, 0, 0, k.width, k.height);
-      var d = x.getImageData(0, 0, k.width, k.height), r = window.jsQR(d.data, k.width, k.height, { inversionAttempts: "dontInvert" });
-      return r && r.data || null;
-    }
-    var W = c.width, H = c.height, t = tryAt(0, 0, W, H, Math.min(W, 1200));
-    if (t || quick) return t;
-    [[.66, .13, .34, .24], [.5, 0, .5, .5]].some(function (b) { return [480, 720, 960, 1300].some(function (w) { t = tryAt(W * b[0], H * b[1], W * b[2], H * b[3], w); return t; }); });
-    return t || (W > 1200 ? tryAt(0, 0, W, H, Math.min(W, 2600)) : null);
-  }
-  function evImages(f) {   // pictures of the pages: the file itself, or the JPEG pages inside a PDF
-    function one(blob) { return new Promise(function (ok, bad) { var u = URL.createObjectURL(blob), im = new Image(); im.onload = function () { var c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext("2d").drawImage(im, 0, 0); URL.revokeObjectURL(u); ok(c); }; im.onerror = bad; im.src = u; }); }
-    if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) return one(f).then(function (c) { return [c]; });
-    return f.arrayBuffer().then(function (buf) {
-      var b = new Uint8Array(buf), s = new TextDecoder("latin1").decode(b), jobs = [], re = /\/DCTDecode[\s\S]{0,300}?stream\r?\n/g, m;
-      while ((m = re.exec(s))) { var st = m.index + m[0].length, e = s.indexOf("endstream", st); if (e > 0) { jobs.push(one(new Blob([b.slice(st, e)], { type: "image/jpeg" })).catch(function () { return null; })); re.lastIndex = e; } }
-      return Promise.all(jobs).then(function (l) { return l.filter(Boolean); });
-    });
-  }
-
   /* records kept in the iAM Smart database (Supabase); null when the client is not available */
   function REC() {
     if (!window.IASClient) return Promise.resolve(null);

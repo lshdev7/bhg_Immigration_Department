@@ -276,6 +276,12 @@
     if (!r || !r.evisaToken) return Promise.reject(new Error("evisa_token"));
     return r.evisaToken(rec.ref, person.dob).then(function (v) { if (!v || !v.token) throw new Error("evisa_token"); return v.token; });
   }
+  /* expired: the validity for presentation (entry) or the limit of stay has passed */
+  window.BHGEVisaExpired = function (rec) {
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    function past(s) { var m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s || ""); return !!m && new Date(+m[3], +m[2] - 1, +m[1]) < t; }
+    return past(rec.until) || (rec.mode !== "ext" && past(rec.valid));
+  };
   window.BHGEVisaForm = formOf;
   window.BHGEVisaToken = tokenOf;
   /* recs: a record or a list (applicant and accompanying dependants). Rejects when the QR code cannot be signed. */
