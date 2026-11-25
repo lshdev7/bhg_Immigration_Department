@@ -20,8 +20,12 @@
     for (var i = 0; i < 6; i++) sum += (+digits[i]) * (7 - i);
     var k = (11 - sum % 11) % 11; return k === 10 ? "A" : String(k);
   }
-  function newNumber() {
-    var L = "ABCDEGHKMNPRSTVZ".charAt(Math.floor(Math.random() * 16)), d = "";
+  function idPrefix(pob, dob) {   // births in BHG follow the birth register; everyone else is first registered now
+    if (pob !== "BHG" || !dob || dob < "1980-01-01") return "L";
+    return dob < "1989-01-01" ? "Z" : dob < "2005-04-01" ? "Y" : dob < "2019-06-01" ? "S" : "N";
+  }
+  function newNumber(pob, dob) {
+    var L = idPrefix(pob, dob), d = "";
     for (var i = 0; i < 6; i++) d += Math.floor(Math.random() * 10);
     return L + d + "(" + checkChar(L, d) + ")";
   }
@@ -47,7 +51,7 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.dob || "") || [0, 2000, 1, 1], dob = new Date(+m[1], +m[2] - 1, +m[3]), now = v.issued ? new Date(v.issued) : new Date();
     var age = ageOn(dob, now), first = v.idtype === "first";
     var fr = first ? z(now.getMonth() + 1) + "-" + String(now.getFullYear()).slice(2) : (v.firstreg || "").replace(/\s/g, "");
-    var no = v.idno ? String(v.idno) : first ? newNumber() : String(v.oldid || "").toUpperCase().replace(/\s/g, "").replace(/^([A-Z]{1,2}\d{6})\(?([0-9A])\)?$/, "$1($2)");
+    var no = v.idno ? String(v.idno) : first ? newNumber(v.pob, v.dob) : String(v.oldid || "").toUpperCase().replace(/\s/g, "").replace(/^([A-Z]{1,2}\d{6})\(?([0-9A])\)?$/, "$1($2)");
     return {
       permanent: v.status === "A", status: v.status, age: age, no: no, window: no.replace(/\(.*$/, ""),
       local: v.local || "", en: (v.surname || "").toUpperCase() + ", " + titleCase(v.given),
