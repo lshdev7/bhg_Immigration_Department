@@ -13,7 +13,7 @@ L = {
     "errEmail": ("Please enter a valid email address.", "올바른 이메일 주소를 입력하세요.", "請輸入有效的電郵地址。"),
     "errTel": ("Please enter a valid phone number.", "올바른 전화번호를 입력하세요.", "請輸入有效的電話號碼。"),
     "errId": ("Please enter the identity card number in the format A123456(7): 1 or 2 letters, 6 digits and a check digit (0-9 or A).", "신분증 번호를 A123456(7) 형식으로 입력하세요. 영문 1~2자, 숫자 6자리, 확인 문자(0~9 또는 A)입니다.", "請按A123456(7)格式輸入身份證號碼：1至2個英文字母、6位數字及1個核對數字（0至9或A）。"),
-    "errDate": ("Please enter a valid date (YYYY-MM-DD) that is not in the future.", "미래가 아닌 올바른 날짜(YYYY-MM-DD)를 입력하세요.", "請輸入有效而不是未來的日期（YYYY-MM-DD）。"),
+    "errDate": ("Please enter a valid date (YYYYMMDD) that is not in the future.", "미래가 아닌 올바른 날짜(YYYYMMDD)를 입력하세요.", "請輸入有效而不是未來的日期（YYYYMMDD）。"),
     "errName": ("Use English letters, spaces, hyphens and apostrophes only.", "영문, 공백, 하이픈, 아포스트로피만 사용할 수 있습니다.", "只可使用英文字母、空格、連字號及撇號。"),
     "errCode": ("Please enter exactly 4 digits.", "숫자 4자리를 입력하세요.", "請輸入4位數字。"),
     "errPw": ("At least 8 characters with letters and numbers.", "영문과 숫자를 포함해 8자 이상이어야 합니다.", "密碼須至少8個字元，並包含英文字母及數字。"),
@@ -31,7 +31,7 @@ L = {
     "errPhotoDim": ("The image must be at least 1200 x 1600 pixels.", "이미지는 최소 1200 x 1600픽셀이어야 합니다.", "圖像大小至少須為1200 x 1600像素。"),
     "errPhotoRatio": ("The image must have a width-to-height ratio of 40:50.", "이미지의 가로:세로 비율은 40:50이어야 합니다.", "圖像的闊高比例必須為40:50。"),
     "applicant": ("Applicant", "신청인", "申請人"), "idno": ("Identity card number", "신분증 번호", "身份證號碼"),
-    "dob": ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"),
+    "dob": ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"),
     "office": ("Office", "사무소", "辦事處"), "date": ("Date", "날짜", "日期"), "time": ("Time", "시간", "時間"),
     "refNo": ("Reference number", "접수번호", "參考編號"), "when": ("Submitted at", "제출 일시", "遞交時間"),
     "trn": ("Transaction Reference Number (TRN)", "거래 참조번호(TRN)", "交易參考編號（TRN）"),
@@ -114,7 +114,7 @@ PASSPORT = {
             F("given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname", ph="JIHOO", rl=("Given names", "이름", "名字")),
             F("local", ("Name in Chinese / Korean characters (if any)", "한글·한자 성명(있는 경우)", "中文／韓文姓名（如有）")),
             F("sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
-            F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+            F("dob", ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"),
             F("pob", ("Place of birth (country / territory)", "출생지(국가·지역)", "出生地點（國家／地區）"), "country", req=True),
             F("idno", ("Baekhyeon Hwarang identity card number", "백현화랑 신분증 번호", "柏峴화랑身份證號碼"), req=True, v="bhid", ph="A123456(3)", sens=True, h=("Example format: A123456(3)", "형식 예: A123456(3)", "格式例子：A123456(3)")),
             F("marital", ("Marital status", "혼인 여부", "婚姻狀況"), "select", req=True, o=MARITAL),
@@ -213,7 +213,7 @@ VISA_STATUS = {
     "type": "status", "title": ("Online Application Status Enquiry", "신청 현황 온라인 조회", "網上查詢申請進度"),
     "intro": ("<p>Enter the application reference number and your date of birth.</p>", "<p>신청 접수번호와 생년월일을 입력하세요.</p>", "<p>請輸入申請的參考編號及你的出生日期。</p>"),
     "statusLabel": ("Application status", "신청 상태", "申請進度"),
-    "fields": [F("ref", ("Application reference number", "신청 접수번호", "申請參考編號"), req=True, v="ref"), F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD")],
+    "fields": [F("ref", ("Application reference number", "신청 접수번호", "申請參考編號"), req=True, v="ref"), F("dob", ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD")],
     "results": [
         [("Application received", "신청 접수", "已收到申請"), ("Your application has been received and is waiting to be processed.", "신청이 접수되어 처리 대기 중입니다.", "本處已收到你的申請，正等候處理。")],
         [("Under processing", "처리 중", "處理中"), ("Your application is being processed. You will be notified of the outcome.", "신청을 처리하고 있습니다. 결과는 별도로 통지됩니다.", "你的申請正在處理中，本處會通知你結果。")],
@@ -245,7 +245,7 @@ ETAX_REGISTER = {
     "steps": [
         {"title": ("Identity", "본인 확인", "身份核對"), "fields": [
             F("name", ("Full name (in English)", "성명(영문)", "姓名（英文）"), req=True, v="enname"), F("idno", ("Baekhyeon Hwarang identity card number", "백현화랑 신분증 번호", "柏峴화랑身份證號碼"), req=True, v="bhid", ph="A123456(3)", sens=True),
-            F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD")]},
+            F("dob", ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD")]},
         {"title": ("Contact", "연락처", "聯絡資料"), "fields": [F("email", ("Email address", "이메일 주소", "電郵地址"), "email", req=True, v="email", sens=True), F("mobile", ("Mobile phone number", "휴대전화 번호", "流動電話號碼"), "tel", req=True, v="tel", sens=True)]},
         {"title": ("Set Password", "비밀번호 설정", "設定密碼"), "fields": [F("pw", ("ITP Password", "ITP 비밀번호", "ITP密碼"), "password", req=True, v="pw", sens=True, h=("At least 8 characters with letters and numbers.", "영문과 숫자를 포함해 8자 이상.", "至少8個字元，並包含英文字母及數字。")), F("pw2", ("Confirm password", "비밀번호 확인", "確認密碼"), "password", req=True, v="match", of="pw", sens=True)]},
         {"title": ("Review", "확인", "核對"), "type": "review"},
@@ -381,7 +381,7 @@ IDCARD = {
             F("given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname", ph="Yu Na", rl=("Given names", "이름", "名字")),
             F("local", ("Name in Chinese / Korean characters (if any)", "한글·한자 성명(있는 경우)", "中文／韓文姓名（如有）")),
             F("sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
-            F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="age11", ph="YYYY-MM-DD", h=("Applicants must be aged 11 or above.", "만 11세 이상만 신청할 수 있습니다.", "申請人須年滿11歲。")),
+            F("dob", ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"), req=True, v="age11", ph="YYYYMMDD", h=("Applicants must be aged 11 or above.", "만 11세 이상만 신청할 수 있습니다.", "申請人須年滿11歲。")),
             F("pob", ("Place of birth (country / territory)", "출생지(국가·지역)", "出生地點（國家／地區）"), "country", req=True),
             F("chgbirth", ("Has your date or place of birth been changed since first registration?", "최초 등록 이후 생년월일이나 출생지가 변경되었습니까?", "首次登記後，你的出生日期或出生地點有否更改？"), "radio", req=True, o=[["Y", ("Yes", "예", "有")], ["N", ("No", "아니요", "沒有")]]),
             F("chgname", ("Has your name been changed, or a Chinese / Korean name added, since first registration?", "최초 등록 이후 이름이 바뀌었거나 한글·한자 이름이 추가되었습니까?", "首次登記後，你的姓名有否更改或加入中文／韓文姓名？"), "radio", req=True, o=[["Y", ("Yes", "예", "有")], ["N", ("No", "아니요", "沒有")]]),
@@ -415,11 +415,11 @@ import data_visa as V
 L.update({
     "dependant": ("Dependant", "부양가족", "受養人"),
     "dlEvisa": ("Download “e-Visa” (PDF)", "\"e-Visa\" 내려받기(PDF)", "下載「電子簽證」（PDF）"),
-    "errFdate": ("Please enter a valid future date (YYYY-MM-DD).", "오늘 이후의 올바른 날짜(YYYY-MM-DD)를 입력하세요.", "請輸入有效的未來日期（YYYY-MM-DD）。"),
-    "errAnyDate": ("Please enter a valid date (YYYY-MM-DD).", "올바른 날짜(YYYY-MM-DD)를 입력하세요.", "請輸入有效的日期（YYYY-MM-DD）。"),
+    "errFdate": ("Please enter a valid future date (YYYYMMDD).", "오늘 이후의 올바른 날짜(YYYYMMDD)를 입력하세요.", "請輸入有效的未來日期（YYYYMMDD）。"),
+    "errAnyDate": ("Please enter a valid date (YYYYMMDD).", "올바른 날짜(YYYYMMDD)를 입력하세요.", "請輸入有效的日期（YYYYMMDD）。"),
     "errEvref": ("Please enter the application reference number shown on the acknowledgement or “e-Visa” (e.g. TTEN-1234567-26(5)).", "접수 확인서나 \"e-Visa\"에 적힌 신청 접수번호를 입력하세요(예: TTEN-1234567-26(5)).", "請輸入確認通知或「電子簽證」上的申請參考編號（例如TTEN-1234567-26(5)）。"),
     "evRef": ("Application reference number", "신청 접수번호", "申請參考編號"),
-    "evDob": ("Date of birth of the applicant (YYYY-MM-DD)", "신청인의 생년월일(YYYY-MM-DD)", "申請人的出生日期（YYYY-MM-DD）"),
+    "evDob": ("Date of birth of the applicant (YYYYMMDD)", "신청인의 생년월일(YYYYMMDD)", "申請人的出生日期（YYYYMMDD）"),
     "evNotFound": ("No “e-Visa” record matches the information entered. Please check the application reference number and the date of birth.", "입력한 정보와 일치하는 \"e-Visa\" 기록이 없습니다. 신청 접수번호와 생년월일을 확인하세요.", "找不到與所輸入資料相符的「電子簽證」紀錄。請檢查申請參考編號及出生日期。"),
     "evName": ("Name", "성명", "姓名"), "evType": ("Type", "종류", "類別"), "evScheme": ("Scheme / arrangement", "제도·절차", "計劃／安排"),
     "evIssue": ("Date of issue", "발급일", "簽發日期"), "evValid": ("Valid for presentation on or before", "제시 유효기한", "須於此日期或之前使用"),
@@ -442,13 +442,13 @@ def _personal(ext):
         F("given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname", ph="Yu Na", rl=("Given names", "이름", "名字")),
         F("local", ("Name in Chinese / Korean characters (if any)", "한글·한자 성명(있는 경우)", "中文／韓文姓名（如有）")),
         F("sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
-        F("dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+        F("dob", ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"),
         F("pob", ("Place of birth (country / territory)", "출생지(국가·지역)", "出生地點（國家／地區）"), "country", req=True),
         F("nat", ("Nationality (country / territory)", "국적(국가·지역)", "國籍（國家／地區）"), "country", req=True),
         F("marital", ("Marital status", "혼인 여부", "婚姻狀況"), "select", req=True, o=MARITAL),
         F("tdtype", ("Type of travel document", "여행증명서 종류", "旅行證件類別"), "select", req=True, o=_TD_TYPES),
         F("tdno", ("Travel document number", "여행증명서 번호", "旅行證件號碼"), req=True, sens=True),
-        F("tdexp", ("Date of expiry of travel document (YYYY-MM-DD)", "여행증명서 만료일(YYYY-MM-DD)", "旅行證件屆滿日期（YYYY-MM-DD）"), req=True, v="fdate", ph="YYYY-MM-DD"),
+        F("tdexp", ("Date of expiry of travel document (YYYYMMDD)", "여행증명서 만료일(YYYYMMDD)", "旅行證件屆滿日期（YYYYMMDD）"), req=True, v="fdate", ph="YYYYMMDD"),
         F("mobile", ("Mobile phone number", "휴대전화 번호", "流動電話號碼"), "tel", req=True, v="tel", sens=True),
         F("email", ("Email address", "이메일 주소", "電郵地址"), "email", req=True, v="email", sens=True),
         F("addr", ("Residential address", "거주지 주소", "住址"), "textarea", req=True, full=True),
@@ -460,7 +460,7 @@ def _dep_fields():
     return [F("d{k}_surname", ("Surname (in English)", "성(영문)", "姓氏（英文）"), req=True, v="enname"),
             F("d{k}_given", ("Given names (in English)", "이름(영문)", "名字（英文）"), req=True, v="enname"),
             F("d{k}_sex", ("Sex", "성별", "性別"), "select", req=True, o=SEX),
-            F("d{k}_dob", ("Date of birth (YYYY-MM-DD)", "생년월일(YYYY-MM-DD)", "出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+            F("d{k}_dob", ("Date of birth (YYYYMMDD)", "생년월일(YYYYMMDD)", "出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"),
             F("d{k}_rel", ("Relationship with the applicant", "신청인과의 관계", "與申請人的關係"), "select", req=True, o=_REL),
             F("d{k}_nat", ("Nationality", "국적", "國籍"), "country", req=True),
             F("d{k}_tdno", ("Travel document number", "여행증명서 번호", "旅行證件號碼"), req=True, sens=True),
@@ -506,7 +506,7 @@ def visa_service(key):
     info = [F("where", ("Where are you now?", "현재 위치", "你現時身在何處？"), "radio", req=True, o=[["in", ("In Baekhyeon Hwarang", "백현화랑 안", "在柏峴화랑")], ["out", ("Outside Baekhyeon Hwarang", "백현화랑 밖", "在柏峴화랑以外地區")]])]
     if ext:
         info = [F("idno", ("Baekhyeon Hwarang identity card number", "백현화랑 신분증 번호", "柏峴화랑身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
-                F("lse", ("Expiry date of current limit of stay (YYYY-MM-DD)", "현재 체류 기한 만료일(YYYY-MM-DD)", "現時逗留期限屆滿日期（YYYY-MM-DD）"), req=True, v="fdate", ph="YYYY-MM-DD")]
+                F("lse", ("Expiry date of current limit of stay (YYYYMMDD)", "현재 체류 기한 만료일(YYYYMMDD)", "現時逗留期限屆滿日期（YYYYMMDD）"), req=True, v="fdate", ph="YYYYMMDD")]
     if s["deps"]:
         info.append(F("deps", ("Number of accompanying dependants applying together (group submission)", "함께 신청하는 동반 부양가족 수(그룹 제출)", "一併申請的隨行受養人數目（以組別方式遞交）"), "select", req=True, o=[[str(n), str(n)] for n in range(0, 9)], h=("Maximum nine applications in each group (including the principal applicant).", "그룹당 주 신청인을 포함해 최대 9건입니다.", "每組最多九宗申請（包括主申請人）。")))
     uploads = [F("photo", V.D_PHOTO, "photo", req=True, full=True)]
@@ -560,7 +560,7 @@ def _lookup(mode, title):
     return {"type": "evisa", "mode": mode, "title": title,
             "intro": ("Please enter the application reference number and the date of birth of the applicant.", "신청 접수번호와 신청인의 생년월일을 입력하세요.", "請輸入申請參考編號及申請人的出生日期。"),
             "fields": [F("ref", ("Application reference number", "신청 접수번호", "申請參考編號"), req=True, v="evref", ph="TTEN-1234567-26(5)"),
-                       F("dob", ("Date of birth of the applicant (YYYY-MM-DD)", "신청인의 생년월일(YYYY-MM-DD)", "申請人的出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD")]}
+                       F("dob", ("Date of birth of the applicant (YYYYMMDD)", "신청인의 생년월일(YYYYMMDD)", "申請人的出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD")]}
 
 
 def _simple(title, fields, done, fee=None, prefix="VS"):
@@ -591,7 +591,7 @@ def common_service(key):
         return b
     if key == "supplementary-documents":
         return _simple(title, [F("ref", ("Application reference number", "신청 접수번호", "申請參考編號"), req=True, v="evref", ph="TTEN-1234567-26(5)"),
-                               F("dob", ("Date of birth of the applicant (YYYY-MM-DD)", "신청인의 생년월일(YYYY-MM-DD)", "申請人的出生日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+                               F("dob", ("Date of birth of the applicant (YYYYMMDD)", "신청인의 생년월일(YYYYMMDD)", "申請人的出生日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"),
                                F("letter", ("Reference number on the notification letter", "통지서 번호", "通知信上的參考編號"), req=True),
                                F("s1", ("Supplementary document 1", "추가 서류 1", "補充文件1"), "file", req=True, full=True),
                                F("s2", ("Supplementary document 2 (optional)", "추가 서류 2(선택)", "補充文件2（可選）"), "file", full=True),
@@ -600,14 +600,14 @@ def common_service(key):
         return _simple(title, [_ID, F("ctype", ("Type of change", "변경 종류", "轉換類別"), "radio", req=True, o=[["emp", ("Change of employment", "고용 변경", "轉換僱主")], ["inv", ("Change of investment", "투자 변경", "更改投資")], ["edu", ("Change of educational institution", "교육기관 변경", "轉換教育院校")]]),
                                F("neworg", ("Name of new employer / business / institution", "새 고용주·사업체·교육기관 이름", "新僱主／業務／院校名稱"), req=True, full=True),
                                F("post", ("Post / programme", "직위·과정", "職位／課程"), req=True), F("salary", ("Monthly salary (BH$)", "월 급여(BH$)", "每月薪金（柏峴화랑元）"), v="num", im="numeric", req=True, showIf={"n": "ctype", "eq": "emp"}),
-                               F("cstart", ("Intended commencement date (YYYY-MM-DD)", "시작 예정일(YYYY-MM-DD)", "預計開始日期（YYYY-MM-DD）"), req=True, v="anydate", ph="YYYY-MM-DD"),
+                               F("cstart", ("Intended commencement date (YYYYMMDD)", "시작 예정일(YYYYMMDD)", "預計開始日期（YYYYMMDD）"), req=True, v="anydate", ph="YYYYMMDD"),
                                F("cdoc", ("Employment contract / admission letter / business proof", "고용계약서·입학허가서·사업 증빙", "僱傭合約／取錄通知書／業務證明"), "file", req=True, full=True)], _DONE,
                        fee={"when": {}, "l": ("Change of condition of stay fee", "체류 조건 변경 수수료", "更改逗留條件費"), "amt": 230}, prefix="CS")
     if key == "fdh-termination":
         return _simple(title, [F("by", ("Notification made by", "통보자", "通知人"), "radio", req=True, o=[["employer", ("Employer", "고용주", "僱主")], ["helper", ("Foreign domestic helper", "외국인 가사도우미", "外籍家庭傭工")]]),
                                F("emname", ("Name of employer", "고용주 성명", "僱主姓名"), req=True), F("emid", ("Employer’s identity card number", "고용주 신분증 번호", "僱主身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
                                F("hname", ("Name of helper", "가사도우미 성명", "傭工姓名"), req=True), F("hid", ("Helper’s identity card number", "가사도우미 신분증 번호", "傭工身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
-                               F("tdate", ("Date of termination (YYYY-MM-DD)", "해지일(YYYY-MM-DD)", "終止日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+                               F("tdate", ("Date of termination (YYYYMMDD)", "해지일(YYYYMMDD)", "終止日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"),
                                F("reason", ("Reason for termination", "해지 사유", "終止原因"), "textarea", req=True, full=True)], _DONE, prefix="FT")
     if key == "id407g":
         return _simple(title, [F("emname", ("Name of employer", "고용주 성명", "僱主姓名"), req=True), F("emid", ("Employer’s identity card number", "고용주 신분증 번호", "僱主身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),

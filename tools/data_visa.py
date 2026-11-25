@@ -258,7 +258,7 @@ S(k="iang", tab="talent", abbr="IANG", spec=True, months=24, slip=("非本地畢
   ext_intro=[("Persons admitted under the IANG may apply for extension of stay if they have taken up employment at a level commonly taken up by degree holders with remuneration at market level.", "IANG로 입경한 사람은 학위 소지자가 통상 맡는 수준의 일자리에 시장 수준 보수로 취업한 경우 체류 연장을 신청할 수 있습니다.", "根據此安排獲准入境的人士，如已受聘從事一般由學位持有人擔任的工作而薪酬福利符合市場水平，可申請延期逗留。")],
   ext_docs=[D_LAST_TD, D_IDX, D_EMP_PROOF],
   fields=[F("igtype", ("Type of applicant", "신청인 유형", "申請人類別"), "radio", req=True, o=[["fresh", ("Fresh graduate (within 6 months after graduation)", "신규 졸업생(졸업 후 6개월 이내)", "應屆畢業生（畢業後六個月內）")], ["return", ("Returning graduate", "복귀 졸업생", "回柏峴的畢業生")]]),
-          F_INST, F("prog", ("Programme of study", "학위 과정", "修讀課程"), req=True), F("graddate", ("Date of graduation (YYYY-MM-DD)", "졸업일(YYYY-MM-DD)", "畢業日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"),
+          F_INST, F("prog", ("Programme of study", "학위 과정", "修讀課程"), req=True), F("graddate", ("Date of graduation (YYYYMMDD)", "졸업일(YYYYMMDD)", "畢業日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"),
           F("employer", ("Name of employer (returning graduates)", "고용주 이름(복귀 졸업생)", "僱主名稱（回柏峴的畢業生）"), req=True, full=True, showIf={"n": "igtype", "eq": "return"})])
 
 S(k="qmas", tab="talent", abbr="QMAS", spec=True, months=36, slip=("優秀人才入境計劃", "QUALITY MIGRANT ADMISSION SCHEME"),
@@ -305,7 +305,7 @@ S(k="vpas", tab="talent", abbr="VPAS", spec=True, months=24, slip=("職業專才
         ("the application is submitted no later than 12 months after the date of graduation; and", "졸업일로부터 12개월 이내에 신청할 것", "申請在畢業日期後12個月內提出；及"),
         ("the applicant has secured an offer of employment in a skilled trade relevant to the programme of study.", "전공과 관련된 숙련 기술직 채용 제안을 받을 것", "申請人已獲聘從事與修讀課程相關的技術工種。")],
   docs=[D_PHOTO, D_TD, D_ID, ("Graduation certificate of the VTC Higher Diploma programme", "VTC 고등 디플로마 졸업증명서", "職業訓練局高級文憑課程畢業證書"), D_CONTRACT],
-  fields=[F("prog", ("VTC Higher Diploma programme", "VTC 고등 디플로마 과정", "職業訓練局高級文憑課程"), req=True, full=True), F("graddate", ("Date of graduation (YYYY-MM-DD)", "졸업일(YYYY-MM-DD)", "畢業日期（YYYY-MM-DD）"), req=True, v="date", ph="YYYY-MM-DD"), F_EMPLOYER, F_POST, F_SALARY])
+  fields=[F("prog", ("VTC Higher Diploma programme", "VTC 고등 디플로마 과정", "職業訓練局高級文憑課程"), req=True, full=True), F("graddate", ("Date of graduation (YYYYMMDD)", "졸업일(YYYYMMDD)", "畢業日期（YYYYMMDD）"), req=True, v="date", ph="YYYYMMDD"), F_EMPLOYER, F_POST, F_SALARY])
 
 
 # ============================================================================= Foreign Domestic Helpers / Imported Workers
@@ -320,7 +320,7 @@ FDH_DOCS = [D_PHOTO, D_TD, ("Standard Employment Contract (ID 407) signed by the
 FDH_FIELDS = [F("emname", ("Name of employer", "고용주 성명", "僱主姓名"), req=True), F("emid", ("Employer’s identity card number", "고용주 신분증 번호", "僱主身份證號碼"), req=True, v="bhid", ph="A123456(7)", sens=True),
               F("emaddr", ("Address of employment", "근무지 주소", "工作地址"), "textarea", req=True, full=True),
               F("wage", ("Monthly wage (BH$)", "월 임금(BH$)", "每月工資（柏峴화랑元）"), req=True, v="num", im="numeric", ph="5100"),
-              F("cstart", ("Contract commencement date (YYYY-MM-DD)", "계약 시작일(YYYY-MM-DD)", "合約開始日期（YYYY-MM-DD）"), req=True, v="anydate", ph="YYYY-MM-DD")]
+              F("cstart", ("Contract commencement date (YYYYMMDD)", "계약 시작일(YYYYMMDD)", "合約開始日期（YYYYMMDD）"), req=True, v="anydate", ph="YYYYMMDD")]
 S(k="fdh", tab="labour", abbr="FDH", deps=False, roa=False, multi=False, months=24, slip=("外籍家庭傭工", "FOREIGN DOMESTIC HELPER"),
   t=("Entry Visa for New Foreign Domestic Helper", "신규 외국인 가사도우미 입경 비자", "新聘外籍家庭傭工入境簽證"), entry_loc="np", entry="entryvisafornewfdh",
   intro=FDH_INTRO, elig=FDH_ELIG, docs=FDH_DOCS, fields=FDH_FIELDS,
@@ -476,7 +476,7 @@ S(k="visit", tab="visit", abbr="Visit", deps=True, roa=False, months=0, days=30,
   after=[("Visitors are not permitted to take up any employment (paid or unpaid), establish or join in any business, or enter school as a student while in the BHGSAR. See Permissible Activities for Visitors for activities that are generally allowed.", "방문객은 백현화랑 특별행정구에 있는 동안 유급·무급 취업, 사업 설립·참여, 학생으로서 학교 입학을 할 수 없습니다. 일반적으로 허용되는 활동은 방문객 허용 활동 안내를 참고하세요.", "訪客在柏峴화랑期間不得接受任何僱傭工作（不論是否受薪）、開辦或參與任何業務，或以學生身份入學。有關一般獲准的活動，請參閱「訪客可從事的活動」。")],
   fields=[F("purpose", ("Purpose of visit", "방문 목적", "訪問目的"), "select", req=True, o=[["tour", ("Sightseeing", "관광", "觀光")], ["family", ("Visiting relatives / friends", "친지·지인 방문", "探親／訪友")], ["business", ("Business visit", "업무 방문", "商務訪問")], ["transit", ("Transit", "경유", "過境")]]),
           F("days", ("Intended length of stay (days)", "예정 체류 기간(일)", "擬逗留期（日）"), "select", req=True, o=[[str(n), str(n)] for n in (7, 14, 30, 60, 90)]),
-          F("arrive", ("Intended date of arrival (YYYY-MM-DD)", "입경 예정일(YYYY-MM-DD)", "預計抵達日期（YYYY-MM-DD）"), req=True, v="anydate", ph="YYYY-MM-DD")])
+          F("arrive", ("Intended date of arrival (YYYYMMDD)", "입경 예정일(YYYYMMDD)", "預計抵達日期（YYYYMMDD）"), req=True, v="anydate", ph="YYYYMMDD")])
 
 S(k="tp", tab="visit", abbr="BHGSAR Travel Pass", deps=False, roa=False, months=36, slip=("柏峴화랑特別行政區旅遊通行證", "BHGSAR TRAVEL PASS"),
   t=("BHGSAR Travel Pass", "백현화랑 특별행정구 여행통행증", "柏峴화랑特別行政區旅遊通行證"), entry="applybhgtp", ext=None,
@@ -515,7 +515,7 @@ for _k, _abbr, _t, _slug, _days, _intro in [
           "不擬使用預辦入境登記的台灣居民，可申請一次或多次入境許可證來柏峴화랑訪問，每次最多逗留30日。"))]:
     S(k=_k, tab="visit", abbr=_abbr, deps=False, roa=False, months=6 if _k == "pri" else 2, days=_days, slip=("訪客", "VISIT"), t=_t, entry=_slug, ext=None, intro=[_intro],
       elig=[("the applicant holds a valid passport / travel document;", "유효한 여권·여행증명서를 소지할 것", "申請人持有有效的護照／旅行證件；"), ("the visit is for leisure, social or business purposes; and", "여가·친교·업무 목적의 방문일 것", "訪問目的為消閒、社交或商務；及"), ("the applicant has no adverse immigration record.", "불리한 출입경 기록이 없을 것", "申請人沒有不良入境紀錄。")],
-      docs=[D_PHOTO, D_TD], fields=[F("arrive", ("Intended date of arrival (YYYY-MM-DD)", "입경 예정일(YYYY-MM-DD)", "預計抵達日期（YYYY-MM-DD）"), req=True, v="anydate", ph="YYYY-MM-DD")])
+      docs=[D_PHOTO, D_TD], fields=[F("arrive", ("Intended date of arrival (YYYYMMDD)", "입경 예정일(YYYYMMDD)", "預計抵達日期（YYYYMMDD）"), req=True, v="anydate", ph="YYYYMMDD")])
 
 SCHEME = {s["k"]: s for s in SCHEMES}
 TAB_ITEMS = {   # ImmD services/visas tab -> ordered list of scheme keys (FDH extension services shown as sub-items)

@@ -64,6 +64,11 @@
   }
   var EVREF = /^[A-Z]{4}-\d{7}-\d{2}\(\d\)$/;
   function evStore(v) { try { return v === undefined ? JSON.parse(localStorage.getItem("bhg-evisa") || "{}") : localStorage.setItem("bhg-evisa", JSON.stringify(v)); } catch (e) { return v === undefined ? {} : null; } }
+  /* Dates are typed and shown as YYYYMMDD (8 digits, no hyphens); S.vals keeps YYYY-MM-DD. */
+  var DATE_V = { date: 1, fdate: 1, anydate: 1, age11: 1 };
+  function isDate(f) { return f.t === "date" || !!DATE_V[f.v]; }
+  function dateShow(v) { return /^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v.replace(/-/g, "") : (v || ""); }
+  function dateKeep(d) { return /^\d{8}$/.test(d) ? d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6) : d; }
   function validDate(v) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     if (!m) return false;
@@ -268,8 +273,17 @@
         return buildSlot(f, S, wrap, onChange);
       } else {
         ctl = el("input", { type: f.t === "password" ? "password" : (f.t === "date" ? "text" : (f.t || "text")), id: id, placeholder: f.ph || "", autocomplete: "off", inputmode: f.im || null, maxlength: f.max || null });
-        ctl.value = v || "";
-        ctl.addEventListener("input", function () { S.vals[f.n] = ctl.value; });
+        if (isDate(f)) {
+          ctl.setAttribute("inputmode", "numeric"); ctl.value = dateShow(v);
+          ctl.addEventListener("input", function () {
+            var d = ctl.value.replace(/\D/g, "").slice(0, 8);
+            if (ctl.value !== d) { var at = ctl.value.slice(0, ctl.selectionStart).replace(/\D/g, "").length; ctl.value = d; ctl.setSelectionRange(at, at); }
+            S.vals[f.n] = dateKeep(d);
+          });
+        } else {
+          ctl.value = v || "";
+          ctl.addEventListener("input", function () { S.vals[f.n] = ctl.value; });
+        }
       }
       if (ctl) wrap.appendChild(ctl);
     }
@@ -370,7 +384,7 @@
         var n = +S.vals.count || 1, out = (s.fields || []).filter(function (f) { return showIf(f.showIf, S.vals); });
         for (var k = 1; k <= n; k++) {
           out.push({ n: "a" + k + "_id", l: L.applicant + " " + k + " – " + L.idno, t: "text", req: true, v: "bhid", ph: "A123456(3)", sens: true });
-          out.push({ n: "a" + k + "_dob", l: L.applicant + " " + k + " – " + L.dob, t: "text", req: true, v: "date", ph: "YYYY-MM-DD", sens: true });
+          out.push({ n: "a" + k + "_dob", l: L.applicant + " " + k + " – " + L.dob, t: "text", req: true, v: "date", ph: "YYYYMMDD", sens: true });
         }
         return out.concat(s.extra || []);
       }
@@ -507,6 +521,7 @@
           if (f.t === "select" || f.t === "radio") v = optLabel(f, v);
           if (f.t === "country") v = optLabel({ o: countryOptions() }, v);
           if (f.t === "checkbox") v = "✓";
+          if (isDate(f)) v = dateShow(v);
           rows.push([f.rl || f.l.replace(/<[^>]+>/g, ""), String(v)]);
         });
         if (!rows.length) return;
